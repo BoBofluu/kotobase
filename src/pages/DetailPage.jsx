@@ -10,8 +10,39 @@ import { theme } from '../styles/theme';
 import { AppField, AppButton, AppPill, AppInput, AppTextArea, AppSelect } from '../components/UI';
 import { useAuth } from '../contexts/AuthContext';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { synthesizeSpeech, getVoices } from '../services/ttsApi';
+import { synthesizeSpeech } from '../services/ttsApi';
 import { getCacheKey, getCachedAudio, setCachedAudio } from '../services/audioCache';
+
+// Gemini 2.5 Flash TTS 專用聲音列表
+const GEMINI_VOICES = [
+  { name: 'Achernar', gender: 'FEMALE' },
+  { name: 'Algenib', gender: 'MALE' },
+  { name: 'Alnilam', gender: 'MALE' },
+  { name: 'Aoede', gender: 'FEMALE' },
+  { name: 'Autonoe', gender: 'FEMALE' },
+  { name: 'Callirrhoe', gender: 'FEMALE' },
+  { name: 'Despina', gender: 'FEMALE' },
+  { name: 'Erinome', gender: 'FEMALE' },
+  { name: 'Gacrux', gender: 'MALE' },
+  { name: 'Laomedeia', gender: 'FEMALE' },
+  { name: 'Puck', gender: 'MALE' },
+  { name: 'Rasalgethi', gender: 'MALE' },
+  { name: 'Sadachbia', gender: 'MALE' },
+  { name: 'Sadatoni', gender: 'MALE' },
+  { name: 'Schedar', gender: 'MALE' },
+  { name: 'Sulafat', gender: 'FEMALE' },
+  { name: 'Umbriel', gender: 'MALE' },
+  { name: 'Vindemiatrix', gender: 'FEMALE' },
+  { name: 'Zephyr', gender: 'MALE' },
+  { name: 'Zubenelgenubi', gender: 'MALE' },
+];
+
+// 英文固定聲音
+const EN_VOICES = [
+  { key: 'en-us', label: '美國', voice: 'Achernar', lang: 'en-us' },
+  { key: 'en-gb', label: '英國', voice: 'Fenrir', lang: 'en-gb' },
+  { key: 'en-au', label: '澳洲', voice: 'Aoede', lang: 'en-au' },
+];
 
 function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, categories, addCategory, updateCategory, deleteCategory }) {
   const { t, i18n } = useTranslation();
@@ -23,35 +54,19 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
   const [showEn, setShowEn] = useState(!!word?.en_content);
   const [showFurigana, setShowFurigana] = useState(false);
   const [isCatManagerOpen, setIsCatManagerOpen] = useState(false);
-  // 記住目前哪個按鈕正在播放
   const [activePlayerKey, setActivePlayerKey] = useState(null);
 
-  // TTS 設定
+  // 日文 TTS 設定
   const [selectedVoice, setSelectedVoice] = useState(
     () => localStorage.getItem('ttsVoice') || 'Achernar'
   );
   const [ttsPrompt, setTtsPrompt] = useState(
     () => localStorage.getItem('ttsPrompt') || 'Read aloud in a warm, welcoming tone.'
   );
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [voiceList, setVoiceList] = useState([]);
+  const [showJpPrompt, setShowJpPrompt] = useState(false);
+  const [showEnPrompt, setShowEnPrompt] = useState(false);
 
   useEffect(() => { if (word) setEditedWord({ ...word }); }, [word, wordId]);
-
-  // 載入 Google API 聲音列表
-  useEffect(() => {
-    const loadVoices = async () => {
-      try {
-        const data = await getVoices();
-        if (data.voices) {
-          setVoiceList(data.voices);
-        }
-      } catch (e) {
-        console.warn('Failed to load voices:', e);
-      }
-    };
-    if (user) loadVoices();
-  }, [user]);
 
   // 離開頁面時停止播放
   useEffect(() => {
@@ -92,35 +107,34 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
 
   /**
    * 播放 TTS（含快取）
+   * @param {string} text - 朗讀文字
+   * @param {string} lang - 語言代碼
+   * @param {string} playerKey - 播放器識別 key
+   * @param {string} voiceName - 指定聲音名稱（可選，預設用 selectedVoice）
    */
-  const handleSpeak = async (text, lang, playerKey) => {
+  const handleSpeak = async (text, lang, playerKey, voiceName) => {
     if (!text) return;
 
-    // 如果同一個按鈕正在播放/暫停，不做任何事（由 AudioPlayer 控制）
     if (activePlayerKey === playerKey && player.status !== 'idle') return;
 
-    // 切換到不同的播放按鈕，先停止舊的
     if (activePlayerKey !== playerKey) {
       player.stop();
     }
     setActivePlayerKey(playerKey);
 
+    const voice = voiceName || selectedVoice;
+
     // 已登入：使用 Gemini TTS + 快取
     if (user) {
       player.setLoading();
       try {
-        const cacheKey = getCacheKey(text, 'ja-JP', selectedVoice);
-
-        // 先查快取
+        const cacheKey = getCacheKey(text, lang, voice);
         let audioContent = await getCachedAudio(cacheKey);
 
         if (!audioContent) {
-          // 快取沒有，呼叫 API
           const idToken = await getIdToken();
-          const result = await synthesizeSpeech(text, 'ja-JP', idToken, { voiceName: selectedVoice, prompt: ttsPrompt });
+          const result = await synthesizeSpeech(text, lang, idToken, { voiceName: voice, prompt: ttsPrompt });
           audioContent = result.audioContent;
-
-          // 存入快取
           await setCachedAudio(cacheKey, audioContent);
         }
 
@@ -138,7 +152,6 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
       return;
     }
 
-    // 未登入：瀏覽器 TTS
     speakWithBrowser(text, lang);
   };
 
@@ -172,12 +185,12 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
   /**
    * 渲染播放器（已登入用 AudioPlayer 元件，未登入用簡單按鈕）
    */
-  const renderPlayer = (text, lang, playerKey, label) => {
+  const renderPlayer = (text, lang, playerKey, label, voiceName) => {
     if (!user) {
       return (
         <AppButton
           text={label}
-          action={() => handleSpeak(text, lang, playerKey)}
+          action={() => handleSpeak(text, lang, playerKey, voiceName)}
           icon={<span style={{ fontSize: '10px' }}>▶</span>}
         />
       );
@@ -187,7 +200,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
     return (
       <AudioPlayer
         status={isActive ? player.status : 'idle'}
-        onPlay={() => handleSpeak(text, lang, playerKey)}
+        onPlay={() => handleSpeak(text, lang, playerKey, voiceName)}
         onPause={player.pause}
         onResume={player.resume}
         onRestart={player.restart}
@@ -264,11 +277,45 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                 <AppField label={t('label_en_content')}>
                     <AppButton text={t('btn_copy')} action={() => handleCopyText(editedWord.en_content)} />
                 </AppField>
-                <div className="flex flex-wrap gap-2 mt-2">
-                    {renderPlayer(editedWord.en_content, 'en-us', 'en-us', t('btn_tts_en_us'))}
-                    {renderPlayer(editedWord.en_content, 'en-gb', 'en-gb', t('btn_tts_en_gb'))}
-                    {renderPlayer(editedWord.en_content, 'en-au', 'en-au', t('btn_tts_en_au'))}
-                </div>
+
+                {/* 英文 TTS 控制區 */}
+                {user ? (
+                  <div className="mt-2 bg-[#242424] rounded-xl border border-[#3f3f3f] p-3 flex flex-col gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {EN_VOICES.map((ev) => (
+                        <React.Fragment key={ev.key}>
+                          {renderPlayer(editedWord.en_content, ev.lang, ev.key, `${ev.label} (${ev.voice})`, ev.voice)}
+                        </React.Fragment>
+                      ))}
+                      <button
+                        onClick={() => setShowEnPrompt(!showEnPrompt)}
+                        className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-[12px] font-bold transition-all ${showEnPrompt ? 'bg-[#818cf8]/20 text-[#818cf8] border border-[#818cf8]/30' : 'bg-[#2c2c2c] text-[#555] border border-[#3f3f3f] hover:text-[#b3b3b3]'}`}
+                      >
+                        <MessageSquare size={12} />
+                        <span>Prompt</span>
+                      </button>
+                    </div>
+                    {showEnPrompt && (
+                      <div className="animate-in fade-in duration-200">
+                        <textarea
+                          value={ttsPrompt}
+                          onChange={(e) => handlePromptChange(e.target.value)}
+                          placeholder="e.g. Read aloud in a warm, welcoming tone."
+                          rows={2}
+                          className="w-full bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-medium leading-relaxed resize-none transition-colors"
+                        />
+                        <p className="text-[11px] text-[#444] mt-1">{t('msg_prompt_hint')}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {renderPlayer(editedWord.en_content, 'en-US', 'en-us', t('btn_tts_en_us'))}
+                    {renderPlayer(editedWord.en_content, 'en-GB', 'en-gb', t('btn_tts_en_gb'))}
+                    {renderPlayer(editedWord.en_content, 'en-AU', 'en-au', t('btn_tts_en_au'))}
+                  </div>
+                )}
+
                 <AppTextArea value={editedWord.en_content} onChange={(e) => handleChange('en_content', e.target.value)} className="mt-3" />
             </div>
         )}
@@ -279,8 +326,8 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                 <AppButton text={showFurigana ? t('btn_edit_original') : t('btn_show_furigana')} action={() => setShowFurigana(!showFurigana)} active={showFurigana} />
             </AppField>
 
-            {/* TTS 控制區 */}
-            {user && (
+            {/* 日文 TTS 控制區 */}
+            {user ? (
               <div className="mt-2 bg-[#242424] rounded-xl border border-[#3f3f3f] p-3 flex flex-col gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* 聲音選擇 */}
@@ -289,15 +336,11 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                     onChange={(e) => handleVoiceChange(e.target.value)}
                     className="bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-1.5 rounded-xl focus:outline-none focus:border-[#818cf8] font-bold flex-1 min-w-[160px]"
                   >
-                    {voiceList.length > 0 ? (
-                      voiceList.map((v) => (
-                        <option key={v.name} value={v.name}>
-                          {v.name} ({v.ssmlGender || 'NEUTRAL'})
-                        </option>
-                      ))
-                    ) : (
-                      <option value={selectedVoice}>{selectedVoice}</option>
-                    )}
+                    {GEMINI_VOICES.map((v) => (
+                      <option key={v.name} value={v.name}>
+                        {v.name} ({v.gender === 'FEMALE' ? '♀' : '♂'})
+                      </option>
+                    ))}
                   </select>
 
                   {/* 播放按鈕 */}
@@ -305,9 +348,8 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
 
                   {/* Prompt 展開按鈕 */}
                   <button
-                    onClick={() => setShowPrompt(!showPrompt)}
-                    className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-[12px] font-bold transition-all ${showPrompt ? 'bg-[#818cf8]/20 text-[#818cf8] border border-[#818cf8]/30' : 'bg-[#2c2c2c] text-[#555] border border-[#3f3f3f] hover:text-[#b3b3b3]'}`}
-                    title={t('label_tts_prompt')}
+                    onClick={() => setShowJpPrompt(!showJpPrompt)}
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-[12px] font-bold transition-all ${showJpPrompt ? 'bg-[#818cf8]/20 text-[#818cf8] border border-[#818cf8]/30' : 'bg-[#2c2c2c] text-[#555] border border-[#3f3f3f] hover:text-[#b3b3b3]'}`}
                   >
                     <MessageSquare size={12} />
                     <span>Prompt</span>
@@ -315,7 +357,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                 </div>
 
                 {/* Prompt 輸入框（可收合） */}
-                {showPrompt && (
+                {showJpPrompt && (
                   <div className="animate-in fade-in duration-200">
                     <textarea
                       value={ttsPrompt}
@@ -328,10 +370,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                   </div>
                 )}
               </div>
-            )}
-
-            {/* 未登入時的簡單朗讀 */}
-            {!user && (
+            ) : (
               <div className="flex items-center gap-2 mt-2">
                 {renderPlayer(editedWord.jp_content, 'ja-JP', 'jp-main', t('btn_tts_jp'))}
               </div>
