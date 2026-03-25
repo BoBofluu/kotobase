@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Copy, Trash2, FileDown, Globe } from 'lucide-react';
+import { ArrowLeft, Copy, Trash2, FileDown, Globe, ChevronDown, MessageSquare } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { clsx } from 'clsx';
 import FuriganaText from '../components/FuriganaText';
@@ -10,7 +10,7 @@ import { theme } from '../styles/theme';
 import { AppField, AppButton, AppPill, AppInput, AppTextArea, AppSelect } from '../components/UI';
 import { useAuth } from '../contexts/AuthContext';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { synthesizeSpeech } from '../services/ttsApi';
+import { synthesizeSpeech, getVoices } from '../services/ttsApi';
 import { getCacheKey, getCachedAudio, setCachedAudio } from '../services/audioCache';
 
 function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, categories, addCategory, updateCategory, deleteCategory }) {
@@ -23,11 +23,35 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
   const [showEn, setShowEn] = useState(!!word?.en_content);
   const [showFurigana, setShowFurigana] = useState(false);
   const [isCatManagerOpen, setIsCatManagerOpen] = useState(false);
-  const [ttsLang, setTtsLang] = useState('ja-JP');
   // 記住目前哪個按鈕正在播放
   const [activePlayerKey, setActivePlayerKey] = useState(null);
 
+  // TTS 設定
+  const [selectedVoice, setSelectedVoice] = useState(
+    () => localStorage.getItem('ttsVoice') || 'Achernar'
+  );
+  const [ttsPrompt, setTtsPrompt] = useState(
+    () => localStorage.getItem('ttsPrompt') || 'Read aloud in a warm, welcoming tone.'
+  );
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [voiceList, setVoiceList] = useState([]);
+
   useEffect(() => { if (word) setEditedWord({ ...word }); }, [word, wordId]);
+
+  // 載入 Google API 聲音列表
+  useEffect(() => {
+    const loadVoices = async () => {
+      try {
+        const data = await getVoices();
+        if (data.voices) {
+          setVoiceList(data.voices);
+        }
+      } catch (e) {
+        console.warn('Failed to load voices:', e);
+      }
+    };
+    if (user) loadVoices();
+  }, [user]);
 
   // 離開頁面時停止播放
   useEffect(() => {
@@ -85,9 +109,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
     if (user) {
       player.setLoading();
       try {
-        const voiceName = localStorage.getItem('ttsVoice') || 'Achernar';
-        const prompt = localStorage.getItem('ttsPrompt') || '';
-        const cacheKey = getCacheKey(text, lang, voiceName);
+        const cacheKey = getCacheKey(text, 'ja-JP', selectedVoice);
 
         // 先查快取
         let audioContent = await getCachedAudio(cacheKey);
@@ -95,7 +117,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
         if (!audioContent) {
           // 快取沒有，呼叫 API
           const idToken = await getIdToken();
-          const result = await synthesizeSpeech(text, 'ja-JP', idToken, { voiceName, prompt });
+          const result = await synthesizeSpeech(text, 'ja-JP', idToken, { voiceName: selectedVoice, prompt: ttsPrompt });
           audioContent = result.audioContent;
 
           // 存入快取
@@ -118,6 +140,16 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
 
     // 未登入：瀏覽器 TTS
     speakWithBrowser(text, lang);
+  };
+
+  const handleVoiceChange = (voice) => {
+    setSelectedVoice(voice);
+    localStorage.setItem('ttsVoice', voice);
+  };
+
+  const handlePromptChange = (value) => {
+    setTtsPrompt(value);
+    localStorage.setItem('ttsPrompt', value);
   };
 
   const speakWithBrowser = (text, lang) => {
@@ -246,13 +278,64 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                 <AppButton text={t('btn_copy')} action={() => handleCopyText(editedWord.jp_content)} />
                 <AppButton text={showFurigana ? t('btn_edit_original') : t('btn_show_furigana')} action={() => setShowFurigana(!showFurigana)} active={showFurigana} />
             </AppField>
-            <div className="flex items-center gap-2 mt-2">
-                <select value={ttsLang} onChange={(e) => setTtsLang(e.target.value)} className="bg-[#2c2c2c] text-[14px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-1 rounded-xl focus:outline-none font-bold">
-                    <option value="ja-JP">ja-JP</option><option value="en-US">en-US</option>
-                    <option value="ko-KR">ko-KR</option>
-                </select>
-                {renderPlayer(editedWord.jp_content, ttsLang, `jp-${ttsLang}`, t('btn_tts_jp'))}
-            </div>
+
+            {/* TTS 控制區 */}
+            {user && (
+              <div className="mt-2 bg-[#242424] rounded-xl border border-[#3f3f3f] p-3 flex flex-col gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* 聲音選擇 */}
+                  <select
+                    value={selectedVoice}
+                    onChange={(e) => handleVoiceChange(e.target.value)}
+                    className="bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-1.5 rounded-xl focus:outline-none focus:border-[#818cf8] font-bold flex-1 min-w-[160px]"
+                  >
+                    {voiceList.length > 0 ? (
+                      voiceList.map((v) => (
+                        <option key={v.name} value={v.name}>
+                          {v.name} ({v.ssmlGender || 'NEUTRAL'})
+                        </option>
+                      ))
+                    ) : (
+                      <option value={selectedVoice}>{selectedVoice}</option>
+                    )}
+                  </select>
+
+                  {/* 播放按鈕 */}
+                  {renderPlayer(editedWord.jp_content, 'ja-JP', 'jp-main', t('btn_tts_jp'))}
+
+                  {/* Prompt 展開按鈕 */}
+                  <button
+                    onClick={() => setShowPrompt(!showPrompt)}
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-[12px] font-bold transition-all ${showPrompt ? 'bg-[#818cf8]/20 text-[#818cf8] border border-[#818cf8]/30' : 'bg-[#2c2c2c] text-[#555] border border-[#3f3f3f] hover:text-[#b3b3b3]'}`}
+                    title={t('label_tts_prompt')}
+                  >
+                    <MessageSquare size={12} />
+                    <span>Prompt</span>
+                  </button>
+                </div>
+
+                {/* Prompt 輸入框（可收合） */}
+                {showPrompt && (
+                  <div className="animate-in fade-in duration-200">
+                    <textarea
+                      value={ttsPrompt}
+                      onChange={(e) => handlePromptChange(e.target.value)}
+                      placeholder="e.g. Read aloud in a warm, welcoming tone."
+                      rows={2}
+                      className="w-full bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-medium leading-relaxed resize-none transition-colors"
+                    />
+                    <p className="text-[11px] text-[#444] mt-1">{t('msg_prompt_hint')}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 未登入時的簡單朗讀 */}
+            {!user && (
+              <div className="flex items-center gap-2 mt-2">
+                {renderPlayer(editedWord.jp_content, 'ja-JP', 'jp-main', t('btn_tts_jp'))}
+              </div>
+            )}
             <div className="mt-3">
                 {showFurigana ? (
                     <div className="w-full bg-[#2c2c2c] border-2 border-[#3f3f3f] rounded-2xl p-5 text-[1.25rem] leading-[2.5]">
