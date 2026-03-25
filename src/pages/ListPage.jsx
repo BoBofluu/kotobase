@@ -23,7 +23,8 @@ function ListPage({ words, categories, onViewDetail }) {
 
   return (
     <div className="flex flex-col gap-4 pb-10">
-      <div className="sticky top-14 bg-[#1a1a1a]/95 backdrop-blur-md z-40 py-4 border-b border-[#3f3f3f] flex flex-col md:flex-row gap-6">
+      {/* 搜尋列：手機上不 sticky，桌面上 sticky */}
+      <div className="md:sticky md:top-14 bg-[#1a1a1a]/95 backdrop-blur-md z-40 py-4 border-b border-[#3f3f3f] flex flex-col md:flex-row gap-6">
         <div className="flex-1 flex flex-col gap-4">
           <div className="flex gap-2">
             <div className="relative flex-1">

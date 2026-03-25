@@ -109,5 +109,6 @@
     "msg_sync_replace_success": "クラウドデータでローカルを置換しました！",
     "msg_sync_no_cloud_data": "クラウドにバックアップデータがありません",
     "msg_sync_error": "同期に失敗しました。後でもう一度お試しください",
-    "msg_tts_not_authorized": "このアカウントは音声機能が有効化されていません"
+    "msg_tts_not_authorized": "このアカウントは音声機能が有効化されていません",
+    "msg_tts_no_content": "読み上げる内容がありません"
 }

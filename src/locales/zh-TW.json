@@ -109,5 +109,6 @@
     "msg_sync_replace_success": "已用雲端資料取代本機！",
     "msg_sync_no_cloud_data": "雲端沒有備份資料",
     "msg_sync_error": "同步失敗，請稍後再試",
-    "msg_tts_not_authorized": "此帳號尚未開通語音功能"
+    "msg_tts_not_authorized": "此帳號尚未開通語音功能",
+    "msg_tts_no_content": "沒有可朗讀的內容"
 }

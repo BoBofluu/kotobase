@@ -113,7 +113,12 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
    * @param {string} voiceName - 指定聲音名稱（可選，預設用 selectedVoice）
    */
   const handleSpeak = async (text, lang, playerKey, voiceName) => {
-    if (!text) return;
+    // 檢查是否有實際內容（排除空白、特殊符號）
+    const hasContent = text && /[\p{L}\p{N}]/u.test(text);
+    if (!hasContent) {
+      Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: t('msg_tts_no_content'), showConfirmButton: false, timer: 2000 });
+      return;
+    }
 
     if (activePlayerKey === playerKey && player.status !== 'idle') return;
 
@@ -124,37 +129,30 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
 
     const voice = voiceName || selectedVoice;
 
-    // 已登入：使用 Gemini TTS + 快取
-    if (user) {
-      player.setLoading();
-      try {
-        const cacheKey = getCacheKey(text, lang, voice);
-        let audioContent = await getCachedAudio(cacheKey);
+    player.setLoading();
+    try {
+      const cacheKey = getCacheKey(text, lang, voice);
+      let audioContent = await getCachedAudio(cacheKey);
 
-        if (!audioContent) {
-          const idToken = await getIdToken();
-          const result = await synthesizeSpeech(text, lang, idToken, { voiceName: voice, prompt: ttsPrompt });
-          audioContent = result.audioContent;
-          await setCachedAudio(cacheKey, audioContent);
-        }
-
-        await player.loadAndPlay(audioContent);
-      } catch (error) {
-        console.error('Gemini TTS failed:', error);
-        player.stop();
-        if (error.status === 403) {
-          Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: t('msg_tts_not_authorized'), showConfirmButton: false, timer: 3000 });
-        } else if (error.status === 429) {
-          Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: t('msg_rate_limit'), showConfirmButton: false, timer: 2000 });
-        } else {
-          Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: t('msg_tts_fallback'), showConfirmButton: false, timer: 1500 });
-          speakWithBrowser(text, lang);
-        }
+      if (!audioContent) {
+        const idToken = await getIdToken();
+        const result = await synthesizeSpeech(text, lang, idToken, { voiceName: voice, prompt: ttsPrompt });
+        audioContent = result.audioContent;
+        await setCachedAudio(cacheKey, audioContent);
       }
-      return;
-    }
 
-    speakWithBrowser(text, lang);
+      await player.loadAndPlay(audioContent);
+    } catch (error) {
+      console.error('Gemini TTS failed:', error);
+      player.stop();
+      if (error.status === 403) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: t('msg_tts_not_authorized'), showConfirmButton: false, timer: 3000 });
+      } else if (error.status === 429) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: t('msg_rate_limit'), showConfirmButton: false, timer: 2000 });
+      } else {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: t('msg_tts_error'), showConfirmButton: false, timer: 2000 });
+      }
+    }
   };
 
   const handleVoiceChange = (voice) => {
@@ -167,16 +165,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
     localStorage.setItem('ttsPrompt', value);
   };
 
-  const speakWithBrowser = (text, lang) => {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const handleDelete = () => {
+const handleDelete = () => {
     Swal.fire({
       title: t('msg_delete_item_confirm'), icon: 'warning', showCancelButton: true, confirmButtonColor: '#ff6b6b', cancelButtonColor: '#3f3f3f', confirmButtonText: t('btn_delete'), cancelButtonText: t('btn_cancel'), background: '#1a1a1a', color: '#fff',
     }).then((result) => {
@@ -188,15 +177,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
    * 渲染播放器（已登入用 AudioPlayer 元件，未登入用簡單按鈕）
    */
   const renderPlayer = (text, lang, playerKey, label, voiceName) => {
-    if (!user) {
-      return (
-        <AppButton
-          text={label}
-          action={() => handleSpeak(text, lang, playerKey, voiceName)}
-          icon={<span style={{ fontSize: '10px' }}>▶</span>}
-        />
-      );
-    }
+    if (!user) return null;
 
     const isActive = activePlayerKey === playerKey;
     return (
@@ -280,8 +261,8 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                     <AppButton text={t('btn_copy')} action={() => handleCopyText(editedWord.en_content)} />
                 </AppField>
 
-                {/* 英文 TTS 控制區 */}
-                {user ? (
+                {/* 英文 TTS 控制區（僅登入時顯示） */}
+                {user && (
                   <div className="mt-2 bg-[#242424] rounded-xl border border-[#3f3f3f] p-3 flex flex-col gap-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       {EN_VOICES.map((ev) => (
@@ -310,12 +291,6 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {renderPlayer(editedWord.en_content, 'en-US', 'en-us', t('btn_tts_en_us'))}
-                    {renderPlayer(editedWord.en_content, 'en-GB', 'en-gb', t('btn_tts_en_gb'))}
-                    {renderPlayer(editedWord.en_content, 'en-AU', 'en-au', t('btn_tts_en_au'))}
-                  </div>
                 )}
 
                 <AppTextArea value={editedWord.en_content} onChange={(e) => handleChange('en_content', e.target.value)} className="mt-3" />
@@ -328,11 +303,10 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                 <AppButton text={showFurigana ? t('btn_edit_original') : t('btn_show_furigana')} action={() => setShowFurigana(!showFurigana)} active={showFurigana} />
             </AppField>
 
-            {/* 日文 TTS 控制區 */}
-            {user ? (
+            {/* 日文 TTS 控制區（僅登入時顯示） */}
+            {user && (
               <div className="mt-2 bg-[#242424] rounded-xl border border-[#3f3f3f] p-3 flex flex-col gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* 聲音選擇 */}
                   <select
                     value={selectedVoice}
                     onChange={(e) => handleVoiceChange(e.target.value)}
@@ -340,15 +314,13 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                   >
                     {GEMINI_VOICES.map((v) => (
                       <option key={v.name} value={v.name}>
-                        {v.name} ({v.gender === 'FEMALE' ? '♀' : '♂'})
+                        {v.name} ({v.gender === 'FEMALE' ? 'Female' : 'Male'})
                       </option>
                     ))}
                   </select>
 
-                  {/* 播放按鈕 */}
                   {renderPlayer(editedWord.jp_content, 'ja-JP', 'jp-main', t('btn_tts_jp'))}
 
-                  {/* Prompt 展開按鈕 */}
                   <button
                     onClick={() => setShowJpPrompt(!showJpPrompt)}
                     className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-[12px] font-bold transition-all ${showJpPrompt ? 'bg-[#818cf8]/20 text-[#818cf8] border border-[#818cf8]/30' : 'bg-[#2c2c2c] text-[#555] border border-[#3f3f3f] hover:text-[#b3b3b3]'}`}
@@ -358,7 +330,6 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                   </button>
                 </div>
 
-                {/* Prompt 輸入框（可收合） */}
                 {showJpPrompt && (
                   <div className="animate-in fade-in duration-200">
                     <textarea
@@ -371,10 +342,6 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                     <p className="text-[11px] text-[#444] mt-1">{t('msg_prompt_hint')}</p>
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 mt-2">
-                {renderPlayer(editedWord.jp_content, 'ja-JP', 'jp-main', t('btn_tts_jp'))}
               </div>
             )}
             <div className="mt-3">
