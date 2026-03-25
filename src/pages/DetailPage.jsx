@@ -142,7 +142,9 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
       } catch (error) {
         console.error('Gemini TTS failed:', error);
         player.stop();
-        if (error.status === 429) {
+        if (error.status === 403) {
+          Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: t('msg_tts_not_authorized'), showConfirmButton: false, timer: 3000 });
+        } else if (error.status === 429) {
           Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: t('msg_rate_limit'), showConfirmButton: false, timer: 2000 });
         } else {
           Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: t('msg_tts_fallback'), showConfirmButton: false, timer: 1500 });
