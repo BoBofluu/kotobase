@@ -44,7 +44,7 @@ const EN_VOICES = [
   { key: 'en-au', label: '澳洲', voice: 'Aoede', lang: 'en-au' },
 ];
 
-function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, categories, addCategory, updateCategory, deleteCategory }) {
+function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onViewDuplicate, categories, addCategory, updateCategory, deleteCategory }) {
   const { t, i18n } = useTranslation();
   const { user, getIdToken } = useAuth();
   const word = getWord(wordId);
@@ -82,10 +82,11 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
   };
 
   const handleDuplicate = () => {
-    const newWord = { ...word, id: Date.now().toString(), title: (word.title || '') + t('msg_duplicate_title_suffix'), created_at: new Date().toISOString() };
+    const newId = Date.now().toString();
+    const newWord = { ...word, id: newId, title: (word.title || '') + t('msg_duplicate_title_suffix'), created_at: new Date().toISOString() };
     onAdd(newWord);
     Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: t('msg_duplicate_success'), showConfirmButton: false, timer: 1500 });
-    onBack();
+    onViewDuplicate(newId);
   };
 
   const handleExport = () => {

@@ -33,8 +33,8 @@ function App() {
       
       <main className="p-4 max-w-[1600px] mx-auto w-full">
         {currentTab === 'input' && (
-          <InputPage 
-            onSave={addWord} 
+          <InputPage
+            onSave={(word) => { addWord(word); setCurrentTab('list'); }}
             categories={safeCategories}
             addCategory={addCategory}
             updateCategory={updateCategory}
@@ -56,13 +56,14 @@ function App() {
         )}
         
         {currentTab === 'detail' && viewingWordId && (
-          <DetailPage 
+          <DetailPage
             wordId={viewingWordId}
             getWord={getWord}
             onBack={handleBackToList}
             onUpdate={updateWord}
             onDelete={deleteWord}
             onAdd={addWord}
+            onViewDuplicate={handleViewDetail}
             categories={safeCategories}
             addCategory={addCategory}
             updateCategory={updateCategory}

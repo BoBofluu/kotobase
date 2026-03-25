@@ -116,7 +116,7 @@ function ListPage({ words, categories, onViewDetail }) {
 
       {/* 回到頂部按鈕 */}
       {showScrollTop && (
-        <button onClick={scrollToTop} className="fixed bottom-6 right-6 z-50 w-11 h-11 bg-[#818cf8] hover:bg-[#6366f1] text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-90" aria-label="Scroll to top">
+        <button onClick={scrollToTop} className="fixed bottom-22 right-4 z-50 w-11 h-11 bg-[#818cf8] hover:bg-[#6366f1] text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-90" aria-label="Scroll to top">
           <ArrowUp size={20} />
         </button>
       )}
