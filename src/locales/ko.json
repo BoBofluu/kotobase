@@ -80,5 +80,8 @@
     "msg_tts_error": "음성 생성에 실패했습니다",
     "msg_tts_fallback": "AI 음성을 사용할 수 없습니다. 브라우저 음성을 사용합니다",
     "msg_rate_limit": "오늘의 사용 횟수 한도에 도달했습니다",
-    "msg_tts_usage": "오늘 {{used}}/{{limit}}회 사용"
+    "msg_tts_usage": "오늘 {{used}}/{{limit}}회 사용",
+    "label_tts_prompt": "읽어주기 스타일 지시",
+    "btn_reset_default": "기본값으로 복원",
+    "msg_prompt_hint": "AI 읽어주기의 톤과 스타일을 제어합니다 (예: 부드럽게, 활발하게, 공식적으로 등)"
 }

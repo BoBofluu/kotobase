@@ -80,5 +80,8 @@
     "msg_tts_error": "語音生成失敗",
     "msg_tts_fallback": "AI 語音不可用，使用瀏覽器語音",
     "msg_rate_limit": "今日使用次數已達上限",
-    "msg_tts_usage": "今日已使用 {{used}}/{{limit}} 次"
+    "msg_tts_usage": "今日已使用 {{used}}/{{limit}} 次",
+    "label_tts_prompt": "朗讀風格指令",
+    "btn_reset_default": "恢復預設",
+    "msg_prompt_hint": "控制 AI 朗讀的語氣和風格，例如：溫柔、活潑、正式等"
 }

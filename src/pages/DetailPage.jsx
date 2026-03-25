@@ -1,28 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Play, Copy, Trash2, FileDown, Globe, Loader2 } from 'lucide-react';
+import { ArrowLeft, Copy, Trash2, FileDown, Globe } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { clsx } from 'clsx';
 import FuriganaText from '../components/FuriganaText';
 import CategoryManager from '../components/CategoryManager';
+import AudioPlayer from '../components/AudioPlayer';
 import { theme } from '../styles/theme';
 import { AppField, AppButton, AppPill, AppInput, AppTextArea, AppSelect } from '../components/UI';
 import { useAuth } from '../contexts/AuthContext';
-import { synthesizeSpeech, playAudio } from '../services/ttsApi';
+import { useAudioPlayer } from '../hooks/useAudioPlayer';
+import { synthesizeSpeech } from '../services/ttsApi';
+import { getCacheKey, getCachedAudio, setCachedAudio } from '../services/audioCache';
 
 function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, categories, addCategory, updateCategory, deleteCategory }) {
   const { t, i18n } = useTranslation();
   const { user, getIdToken } = useAuth();
   const word = getWord(wordId);
+  const player = useAudioPlayer();
 
   const [editedWord, setEditedWord] = useState(word);
   const [showEn, setShowEn] = useState(!!word?.en_content);
   const [showFurigana, setShowFurigana] = useState(false);
   const [isCatManagerOpen, setIsCatManagerOpen] = useState(false);
   const [ttsLang, setTtsLang] = useState('ja-JP');
-  const [ttsLoading, setTtsLoading] = useState(false);
+  // 記住目前哪個按鈕正在播放
+  const [activePlayerKey, setActivePlayerKey] = useState(null);
 
   useEffect(() => { if (word) setEditedWord({ ...word }); }, [word, wordId]);
+
+  // 離開頁面時停止播放
+  useEffect(() => {
+    return () => player.stop();
+  }, []);
 
   if (!word || !editedWord) return null;
 
@@ -56,34 +66,57 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
     });
   };
 
-  const handleSpeak = async (text, lang) => {
+  /**
+   * 播放 TTS（含快取）
+   */
+  const handleSpeak = async (text, lang, playerKey) => {
     if (!text) return;
 
-    // 已登入：使用 Gemini 2.5 Flash TTS
+    // 如果同一個按鈕正在播放/暫停，不做任何事（由 AudioPlayer 控制）
+    if (activePlayerKey === playerKey && player.status !== 'idle') return;
+
+    // 切換到不同的播放按鈕，先停止舊的
+    if (activePlayerKey !== playerKey) {
+      player.stop();
+    }
+    setActivePlayerKey(playerKey);
+
+    // 已登入：使用 Gemini TTS + 快取
     if (user) {
-      if (ttsLoading) return;
-      setTtsLoading(true);
+      player.setLoading();
       try {
-        const idToken = await getIdToken();
         const voiceName = localStorage.getItem('ttsVoice') || 'Achernar';
-        const result = await synthesizeSpeech(text, lang, idToken, { voiceName });
-        await playAudio(result.audioContent);
+        const prompt = localStorage.getItem('ttsPrompt') || '';
+        const cacheKey = getCacheKey(text, lang, voiceName);
+
+        // 先查快取
+        let audioContent = await getCachedAudio(cacheKey);
+
+        if (!audioContent) {
+          // 快取沒有，呼叫 API
+          const idToken = await getIdToken();
+          const result = await synthesizeSpeech(text, 'ja-JP', idToken, { voiceName, prompt });
+          audioContent = result.audioContent;
+
+          // 存入快取
+          await setCachedAudio(cacheKey, audioContent);
+        }
+
+        await player.loadAndPlay(audioContent);
       } catch (error) {
         console.error('Gemini TTS failed:', error);
+        player.stop();
         if (error.status === 429) {
           Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: t('msg_rate_limit'), showConfirmButton: false, timer: 2000 });
         } else {
-          // Fallback 到瀏覽器 TTS
           Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: t('msg_tts_fallback'), showConfirmButton: false, timer: 1500 });
           speakWithBrowser(text, lang);
         }
-      } finally {
-        setTtsLoading(false);
       }
       return;
     }
 
-    // 未登入：使用瀏覽器內建 TTS
+    // 未登入：瀏覽器 TTS
     speakWithBrowser(text, lang);
   };
 
@@ -104,12 +137,41 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
     });
   };
 
+  /**
+   * 渲染播放器（已登入用 AudioPlayer 元件，未登入用簡單按鈕）
+   */
+  const renderPlayer = (text, lang, playerKey, label) => {
+    if (!user) {
+      return (
+        <AppButton
+          text={label}
+          action={() => handleSpeak(text, lang, playerKey)}
+          icon={<span style={{ fontSize: '10px' }}>▶</span>}
+        />
+      );
+    }
+
+    const isActive = activePlayerKey === playerKey;
+    return (
+      <AudioPlayer
+        status={isActive ? player.status : 'idle'}
+        onPlay={() => handleSpeak(text, lang, playerKey)}
+        onPause={player.pause}
+        onResume={player.resume}
+        onRestart={player.restart}
+        onStop={() => { player.stop(); setActivePlayerKey(null); }}
+        isHD={true}
+        label={label}
+      />
+    );
+  };
+
   const currentCat = categories?.[editedWord.category] || {};
   const catColor = currentCat.customColor || '#818cf8';
 
   return (
     <div className="flex flex-col gap-6 pb-24 w-full animate-in fade-in duration-300 px-4 max-w-[1600px] mx-auto">
-      
+
       <div className="sticky top-14 bg-[#1a1a1a]/90 backdrop-blur-md z-40 py-3 border-b border-[#3f3f3f] flex items-center justify-between">
         <button onClick={onBack} className="flex items-center gap-2 text-[#818cf8] hover:text-white transition-colors font-bold focus:outline-none">
           <ArrowLeft size={20} />
@@ -143,10 +205,10 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                 </AppField>
                 <div className="flex flex-wrap gap-2 min-h-[44px] items-center mt-3">
                     {currentCat.subcats?.map(sub => (
-                        <AppPill 
-                            key={sub.id} 
-                            text={sub.label} 
-                            active={editedWord.subcategories?.includes(sub.id)} 
+                        <AppPill
+                            key={sub.id}
+                            text={sub.label}
+                            active={editedWord.subcategories?.includes(sub.id)}
                             action={() => {
                                 let newSubcats = [...(editedWord.subcategories || [])];
                                 if (newSubcats.includes(sub.id)) newSubcats = newSubcats.filter(id => id !== sub.id);
@@ -169,10 +231,12 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
             <div className="animate-in fade-in duration-300">
                 <AppField label={t('label_en_content')}>
                     <AppButton text={t('btn_copy')} action={() => handleCopyText(editedWord.en_content)} />
-                    <AppButton text={ttsLoading ? '...' : `${t('btn_tts_en_us')}${user ? ' HD' : ''}`} action={() => handleSpeak(editedWord.en_content, 'en-us')} />
-                    <AppButton text={`${t('btn_tts_en_gb')}${user ? ' HD' : ''}`} action={() => handleSpeak(editedWord.en_content, 'en-gb')} />
-                    <AppButton text={`${t('btn_tts_en_au')}${user ? ' HD' : ''}`} action={() => handleSpeak(editedWord.en_content, 'en-au')} />
                 </AppField>
+                <div className="flex flex-wrap gap-2 mt-2">
+                    {renderPlayer(editedWord.en_content, 'en-us', 'en-us', t('btn_tts_en_us'))}
+                    {renderPlayer(editedWord.en_content, 'en-gb', 'en-gb', t('btn_tts_en_gb'))}
+                    {renderPlayer(editedWord.en_content, 'en-au', 'en-au', t('btn_tts_en_au'))}
+                </div>
                 <AppTextArea value={editedWord.en_content} onChange={(e) => handleChange('en_content', e.target.value)} className="mt-3" />
             </div>
         )}
@@ -181,18 +245,14 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
             <AppField label={t('label_content')}>
                 <AppButton text={t('btn_copy')} action={() => handleCopyText(editedWord.jp_content)} />
                 <AppButton text={showFurigana ? t('btn_edit_original') : t('btn_show_furigana')} action={() => setShowFurigana(!showFurigana)} active={showFurigana} />
-                <div className="flex items-center gap-2">
-                    <select value={ttsLang} onChange={(e) => setTtsLang(e.target.value)} className="bg-[#2c2c2c] text-[14px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-1 rounded-xl focus:outline-none font-bold">
-                        <option value="ja-JP">ja-JP</option><option value="en-US">en-US</option>
-                        <option value="ko-KR">ko-KR</option>
-                    </select>
-                    <AppButton
-                      text={ttsLoading ? t('msg_tts_loading') : `${t('btn_tts_jp')}${user ? ' HD' : ''}`}
-                      action={() => handleSpeak(editedWord.jp_content, ttsLang)}
-                      icon={ttsLoading ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} fill="currentColor" />}
-                    />
-                </div>
             </AppField>
+            <div className="flex items-center gap-2 mt-2">
+                <select value={ttsLang} onChange={(e) => setTtsLang(e.target.value)} className="bg-[#2c2c2c] text-[14px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-1 rounded-xl focus:outline-none font-bold">
+                    <option value="ja-JP">ja-JP</option><option value="en-US">en-US</option>
+                    <option value="ko-KR">ko-KR</option>
+                </select>
+                {renderPlayer(editedWord.jp_content, ttsLang, `jp-${ttsLang}`, t('btn_tts_jp'))}
+            </div>
             <div className="mt-3">
                 {showFurigana ? (
                     <div className="w-full bg-[#2c2c2c] border-2 border-[#3f3f3f] rounded-2xl p-5 text-[1.25rem] leading-[2.5]">

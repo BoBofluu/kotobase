@@ -80,5 +80,8 @@
     "msg_tts_error": "音声生成に失敗しました",
     "msg_tts_fallback": "AI音声が利用できません。ブラウザ音声を使用します",
     "msg_rate_limit": "本日の利用回数上限に達しました",
-    "msg_tts_usage": "本日 {{used}}/{{limit}} 回使用済み"
+    "msg_tts_usage": "本日 {{used}}/{{limit}} 回使用済み",
+    "label_tts_prompt": "読み上げスタイル指示",
+    "btn_reset_default": "デフォルトに戻す",
+    "msg_prompt_hint": "AIの読み上げトーンやスタイルを制御します（例：優しく、元気に、フォーマルなど）"
 }
