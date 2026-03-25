@@ -8,17 +8,5 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    {
-      name: 'serve-dict-files',
-      configureServer(server) {
-        server.middlewares.use((req, res, next) => {
-          if (req.url && req.url.includes('/dict/') && req.url.endsWith('.gz')) {
-            res.setHeader('Content-Type', 'application/gzip');
-            res.setHeader('Content-Encoding', 'identity');
-          }
-          next();
-        });
-      }
-    }
   ]
 })

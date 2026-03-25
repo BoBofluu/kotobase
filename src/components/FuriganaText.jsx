@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { parseFurigana } from '../utils/kuromoji';
+import { fetchFurigana } from '../services/ttsApi';
 
 function FuriganaText({ text, className }) {
   const [tokens, setTokens] = useState([]);
@@ -7,16 +7,24 @@ function FuriganaText({ text, className }) {
 
   useEffect(() => {
     let isMounted = true;
-    const fetchFurigana = async () => {
+
+    const fetchData = async () => {
       if (!text) { setTokens([]); return; }
       setIsLoading(true);
+
       try {
-        const parsed = await parseFurigana(text);
+        const parsed = await fetchFurigana(text);
         if (isMounted) setTokens(parsed);
-      } catch (error) { console.error("Furigana parse error:", error); } 
-      finally { if (isMounted) setIsLoading(false); }
+      } catch (error) {
+        console.error("Furigana parse error:", error);
+        // API 失敗時顯示純文字（無假名）
+        if (isMounted) setTokens([{ surface: text, reading: null }]);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
     };
-    fetchFurigana();
+
+    fetchData();
     return () => { isMounted = false; };
   }, [text]);
 

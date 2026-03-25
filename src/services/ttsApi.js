@@ -93,3 +93,31 @@ export async function getVoices() {
   if (!response.ok) return { voices: [], languages: [] };
   return response.json();
 }
+
+/**
+ * 呼叫後端 Yahoo Japan ふりがな API，取得精確的假名標注
+ * 不需要登入，所有使用者都能使用
+ * @param {string} text - 要標注假名的日文文字
+ * @returns {Promise<Array<{surface: string, reading: string|null}>>}
+ */
+export async function fetchFurigana(text) {
+  if (!TTS_API_URL) {
+    throw new Error('API URL not configured');
+  }
+
+  const response = await fetch(`${TTS_API_URL}/furigana`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Furigana API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.readings;
+}
