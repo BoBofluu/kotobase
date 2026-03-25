@@ -8,7 +8,7 @@ export const initKuromoji = () => {
   if (isInitializing && initializationPromise) return initializationPromise;
   isInitializing = true;
   initializationPromise = new Promise((resolve, reject) => {
-    window.kuromoji.builder({ dicPath: '/dict/' }).build((err, _tokenizer) => {
+    window.kuromoji.builder({ dicPath: import.meta.env.BASE_URL + 'dict/' }).build((err, _tokenizer) => {
       isInitializing = false;
       if (err) { console.error("Kuromoji initialization error:", err); reject(err); } 
       else { tokenizer = _tokenizer; resolve(tokenizer); }
