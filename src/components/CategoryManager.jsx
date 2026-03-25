@@ -29,14 +29,14 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
   };
 
   const handleAddCategory = () => {
-    if (!newCatName.trim()) { Swal.fire({ icon: 'warning', title: '請輸入名稱', text: '主分類名稱不能為空喔！', timer: 1500 }); return; }
+    if (!newCatName.trim()) { Swal.fire({ icon: 'warning', title: t('msg_input_required'), text: t('msg_cat_name_empty'), timer: 1500 }); return; }
     const newId = `cat_${Date.now()}`;
     addCategory(newId, newCatName.trim(), customColor);
     setNewCatName(''); setSelectedCatId(newId);
   };
 
   const handleDeleteCategory = (id) => {
-    if (Object.keys(safeCategories).length <= 1) { Swal.fire({ icon: 'warning', title: '無法刪除', text: '至少需要保留一個分類' }); return; }
+    if (Object.keys(safeCategories).length <= 1) { Swal.fire({ icon: 'warning', title: t('msg_cannot_delete'), text: t('msg_keep_one_cat') }); return; }
     Swal.fire({ title: t('msg_delete_confirm'), icon: 'warning', showCancelButton: true, confirmButtonText: t('btn_delete'), background: '#1a1a1a', color: '#fff',
     }).then((result) => {
       if (result.isConfirmed) {
@@ -48,7 +48,7 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
   };
 
   const handleAddSubcat = () => {
-    if (!newSubcatName.trim()) { Swal.fire({ icon: 'warning', title: '請輸入名稱', text: '子分類名稱不能為空喔！', timer: 1500 }); return; }
+    if (!newSubcatName.trim()) { Swal.fire({ icon: 'warning', title: t('msg_input_required'), text: t('msg_subcat_name_empty'), timer: 1500 }); return; }
     if (!selectedCatId) return;
     const currentCat = safeCategories[selectedCatId];
     const newSubcat = { id: `sub_${Date.now()}`, label: newSubcatName.trim() };
@@ -71,11 +71,11 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
         <div className="flex items-center justify-between p-4 border-b border-[#333]"><h2 className="text-lg font-bold">{t('btn_manage_category')}</h2><button onClick={onClose} className="p-1 hover:bg-[#333] rounded-lg transition-colors text-[#888]"><X size={20} /></button></div>
         <div className="p-5 flex-1 overflow-y-auto flex flex-col gap-8 custom-scrollbar">
           <div className="flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-[#818cf8] uppercase tracking-wider">主分類設定</h3>
+            <h3 className="text-sm font-bold text-[#818cf8] uppercase tracking-wider">{t('label_main_cat_settings')}</h3>
             <div className="flex flex-col gap-4">
                 <div className="flex gap-2">
-                    <input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="新分類名稱..." className="flex-1 bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-[#818cf8]" />
-                    <button onClick={handleAddCategory} className={btnClass}><Plus size={18} /> 新增</button>
+                    <input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder={t('placeholder_new_cat')} className="flex-1 bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-[#818cf8]" />
+                    <button onClick={handleAddCategory} className={btnClass}><Plus size={18} /> {t('btn_add')}</button>
                 </div>
                 <div className="flex flex-wrap gap-2.5 mt-1 px-1 items-center">
                     {PRESET_COLORS.map(color => (<button key={color} onClick={() => handleChangeCatColor(selectedCatId, color)} className={clsx("w-6 h-6 rounded-full transition-all", customColor === color ? "ring-2 ring-white ring-offset-2 ring-offset-[#1a1a1a] scale-110" : "opacity-60 hover:opacity-100")} style={{ backgroundColor: color }} />))}
@@ -92,20 +92,20 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
             </div>
           </div>
           <div className="flex flex-col gap-4 pt-6 border-t border-[#333]">
-            <h3 className="text-sm font-bold text-[#818cf8] uppercase tracking-wider">「{safeCategories[selectedCatId]?.label || ''}」的子分類</h3>
+            <h3 className="text-sm font-bold text-[#818cf8] uppercase tracking-wider">{t('label_subcats_of', { name: safeCategories[selectedCatId]?.label || '' })}</h3>
             <div className="flex gap-2">
-              <input type="text" value={newSubcatName} onChange={(e) => setNewSubcatName(e.target.value)} placeholder="新子分類名稱..." className="flex-1 bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-[#818cf8]" />
-              <button onClick={handleAddSubcat} className={subBtnClass}><Plus size={16} /> 新增</button>
+              <input type="text" value={newSubcatName} onChange={(e) => setNewSubcatName(e.target.value)} placeholder={t('placeholder_new_subcat')} className="flex-1 bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-[#818cf8]" />
+              <button onClick={handleAddSubcat} className={subBtnClass}><Plus size={16} /> {t('btn_add')}</button>
             </div>
             <div className="flex flex-wrap gap-2 mt-1">
               {(safeCategories[selectedCatId]?.subcats || []).map((sub) => (
                 <div key={sub.id} className="bg-[#2c2c2c] border border-[#3f3f3f] rounded-full px-3 py-1.5 flex items-center gap-2 text-[14px] text-[#b3b3b3] hover:text-white transition-colors group"><span>{sub.label}</span><button onClick={() => handleDeleteSubcat(sub.id)} className="text-[#555] hover:text-[#ff6b6b] transition-colors"><X size={14} /></button></div>
               ))}
-              {(!safeCategories[selectedCatId]?.subcats || safeCategories[selectedCatId]?.subcats.length === 0) && (<span className="text-[14px] text-[#555] italic py-2">尚無子分類</span>)}
+              {(!safeCategories[selectedCatId]?.subcats || safeCategories[selectedCatId]?.subcats.length === 0) && (<span className="text-[14px] text-[#555] italic py-2">{t('msg_no_subcat_yet')}</span>)}
             </div>
           </div>
         </div>
-        <div className="p-4 bg-[#252525] border-t border-[#333] flex justify-end"><button onClick={onClose} className="bg-white text-black px-8 py-2.5 rounded-xl font-bold active:scale-95 transition-all shadow-lg">完成</button></div>
+        <div className="p-4 bg-[#252525] border-t border-[#333] flex justify-end"><button onClick={onClose} className="bg-white text-black px-8 py-2.5 rounded-xl font-bold active:scale-95 transition-all shadow-lg">{t('btn_done')}</button></div>
       </div>
     </div>
   );

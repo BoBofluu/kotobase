@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Play, Copy, Trash2, FileDown, Globe } from 'lucide-react';
+import { ArrowLeft, Play, Copy, Trash2, FileDown, Globe, Loader2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { clsx } from 'clsx';
 import FuriganaText from '../components/FuriganaText';
 import CategoryManager from '../components/CategoryManager';
 import { theme } from '../styles/theme';
 import { AppField, AppButton, AppPill, AppInput, AppTextArea, AppSelect } from '../components/UI';
+import { useAuth } from '../contexts/AuthContext';
+import { synthesizeSpeech, playAudio } from '../services/ttsApi';
 
 function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, categories, addCategory, updateCategory, deleteCategory }) {
   const { t, i18n } = useTranslation();
+  const { user, getIdToken } = useAuth();
   const word = getWord(wordId);
 
   const [editedWord, setEditedWord] = useState(word);
@@ -17,6 +20,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
   const [showFurigana, setShowFurigana] = useState(false);
   const [isCatManagerOpen, setIsCatManagerOpen] = useState(false);
   const [ttsLang, setTtsLang] = useState('ja-JP');
+  const [ttsLoading, setTtsLoading] = useState(false);
 
   useEffect(() => { if (word) setEditedWord({ ...word }); }, [word, wordId]);
 
@@ -52,8 +56,39 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
     });
   };
 
-  const handleSpeak = (text, lang) => {
-    if (!window.speechSynthesis || !text) return;
+  const handleSpeak = async (text, lang) => {
+    if (!text) return;
+
+    // 已登入：使用 Gemini 2.5 Flash TTS
+    if (user) {
+      if (ttsLoading) return;
+      setTtsLoading(true);
+      try {
+        const idToken = await getIdToken();
+        const voiceName = localStorage.getItem('ttsVoice') || 'Achernar';
+        const result = await synthesizeSpeech(text, lang, idToken, { voiceName });
+        await playAudio(result.audioContent);
+      } catch (error) {
+        console.error('Gemini TTS failed:', error);
+        if (error.status === 429) {
+          Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: t('msg_rate_limit'), showConfirmButton: false, timer: 2000 });
+        } else {
+          // Fallback 到瀏覽器 TTS
+          Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: t('msg_tts_fallback'), showConfirmButton: false, timer: 1500 });
+          speakWithBrowser(text, lang);
+        }
+      } finally {
+        setTtsLoading(false);
+      }
+      return;
+    }
+
+    // 未登入：使用瀏覽器內建 TTS
+    speakWithBrowser(text, lang);
+  };
+
+  const speakWithBrowser = (text, lang) => {
+    if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = lang;
@@ -134,9 +169,9 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
             <div className="animate-in fade-in duration-300">
                 <AppField label={t('label_en_content')}>
                     <AppButton text={t('btn_copy')} action={() => handleCopyText(editedWord.en_content)} />
-                    <AppButton text={t('btn_tts_en_us')} action={() => handleSpeak(editedWord.en_content, 'en-US')} />
-                    <AppButton text={t('btn_tts_en_gb')} action={() => handleSpeak(editedWord.en_content, 'en-GB')} />
-                    <AppButton text={t('btn_tts_en_au')} action={() => handleSpeak(editedWord.en_content, 'en-AU')} />
+                    <AppButton text={ttsLoading ? '...' : `${t('btn_tts_en_us')}${user ? ' HD' : ''}`} action={() => handleSpeak(editedWord.en_content, 'en-us')} />
+                    <AppButton text={`${t('btn_tts_en_gb')}${user ? ' HD' : ''}`} action={() => handleSpeak(editedWord.en_content, 'en-gb')} />
+                    <AppButton text={`${t('btn_tts_en_au')}${user ? ' HD' : ''}`} action={() => handleSpeak(editedWord.en_content, 'en-au')} />
                 </AppField>
                 <AppTextArea value={editedWord.en_content} onChange={(e) => handleChange('en_content', e.target.value)} className="mt-3" />
             </div>
@@ -151,7 +186,11 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, catego
                         <option value="ja-JP">ja-JP</option><option value="en-US">en-US</option>
                         <option value="ko-KR">ko-KR</option>
                     </select>
-                    <AppButton text={t('btn_tts_jp')} action={() => handleSpeak(editedWord.jp_content, ttsLang)} icon={<Play size={12} fill="currentColor" />} />
+                    <AppButton
+                      text={ttsLoading ? t('msg_tts_loading') : `${t('btn_tts_jp')}${user ? ' HD' : ''}`}
+                      action={() => handleSpeak(editedWord.jp_content, ttsLang)}
+                      icon={ttsLoading ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} fill="currentColor" />}
+                    />
                 </div>
             </AppField>
             <div className="mt-3">
