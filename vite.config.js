@@ -2,7 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+// https://vitejs.dev/config/
 export default defineConfig({
+  base: '/kotobase/',
   plugins: [
     react(),
     tailwindcss(),
@@ -10,7 +12,7 @@ export default defineConfig({
       name: 'serve-dict-files',
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          if (req.url && req.url.startsWith('/dict/') && req.url.endsWith('.gz')) {
+          if (req.url && req.url.includes('/dict/') && req.url.endsWith('.gz')) {
             res.setHeader('Content-Type', 'application/gzip');
             res.setHeader('Content-Encoding', 'identity');
           }
