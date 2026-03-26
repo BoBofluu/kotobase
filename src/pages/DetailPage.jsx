@@ -324,12 +324,12 @@ const handleDelete = () => {
                     {showEnPrompt && (
                       <div className="animate-in fade-in duration-200 flex flex-col gap-2">
                         <select
-                          value={PROMPT_PRESETS.find(p => p.value === ttsPrompt)?.value || ''}
-                          onChange={(e) => { if (e.target.value) handlePromptChange(e.target.value); }}
+                          value={PROMPT_PRESETS.find(p => p.value === ttsPrompt)?.id || ''}
+                          onChange={(e) => { const preset = PROMPT_PRESETS.find(p => p.id === e.target.value); if (preset) handlePromptChange(preset.value); }}
                           className="appearance-none bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-bold cursor-pointer"
                         >
                           <option value="">{t('label_prompt_preset')}</option>
-                          {PROMPT_PRESETS.map(p => (<option key={p.id} value={p.value}>{p.label}</option>))}
+                          {PROMPT_PRESETS.map(p => (<option key={p.id} value={p.id}>{p.label}</option>))}
                         </select>
                         <textarea
                           value={ttsPrompt}
