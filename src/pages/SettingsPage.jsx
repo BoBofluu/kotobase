@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Swal from 'sweetalert2';
 import { Globe, Trash2, ExternalLink, LogIn, LogOut, User, Download, Upload, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { uploadToCloud, downloadFromCloud, mergeWords, mergeCategories, exportData, parseImportFile } from '../services/cloudSync';
+import { uploadToCloud, mergeUploadToCloud, downloadFromCloud, clearCloud, mergeWords, mergeCategories, exportData, parseImportFile } from '../services/cloudSync';
 import { toast, alert, confirmDelete, chooseMode } from '../utils/swal';
 import { STORAGE_KEYS, getLocalWords, setLocalWords, getLocalCategories, setLocalCategories } from '../utils/storage';
 
@@ -132,14 +132,47 @@ function SettingsPage() {
   // ===== 雲端同步 =====
   const handleSyncToCloud = async () => {
     if (!user) return;
+
+    const localWords = getLocalWords();
+    const localCats = getLocalCategories();
+
+    const result = await chooseMode(t, {
+      title: t('msg_sync_upload_title'),
+      html: `${t('msg_sync_local_count', { count: localWords.length })}<br/><br/>${t('msg_import_mode')}`,
+      confirmText: t('btn_import_merge'),
+      denyText: t('btn_sync_replace_cloud'),
+    });
+
+    if (!result.isConfirmed && !result.isDenied) return;
+
     setSyncing(true);
     try {
-      const words = getLocalWords();
-      const categories = getLocalCategories();
-      await uploadToCloud(user.uid, words, categories);
-      toast('success', t('msg_sync_upload_success'));
+      if (result.isConfirmed) {
+        await mergeUploadToCloud(user.uid, localWords, localCats);
+        toast('success', t('msg_sync_merge_upload_success'));
+      } else {
+        await uploadToCloud(user.uid, localWords, localCats);
+        toast('success', t('msg_sync_upload_success'));
+      }
     } catch (error) {
       console.error('Sync upload error:', error);
+      toast('error', t('msg_sync_error'), 2000);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleClearCloud = async () => {
+    if (!user) return;
+    const result = await confirmDelete(t, t('btn_sync_clear_cloud'), t('msg_sync_clear_confirm'));
+    if (!result.isConfirmed) return;
+
+    setSyncing(true);
+    try {
+      await clearCloud(user.uid);
+      toast('success', t('msg_sync_clear_success'));
+    } catch (error) {
+      console.error('Clear cloud error:', error);
       toast('error', t('msg_sync_error'), 2000);
     } finally {
       setSyncing(false);
@@ -284,6 +317,14 @@ function SettingsPage() {
             </button>
           </div>
           <p className="text-[12px] text-[#444] mt-2">{t('msg_sync_hint')}</p>
+          <button
+            onClick={handleClearCloud}
+            disabled={syncing}
+            className={`flex items-center justify-center gap-2 mt-3 w-full py-2.5 px-2 bg-[#ff6b6b]/10 border border-[#ff6b6b]/30 text-[#ff6b6b] rounded-xl font-bold hover:bg-[#ff6b6b] hover:text-white transition-all active:scale-[0.98] text-[13px] ${syncing ? 'opacity-60 cursor-wait' : ''}`}
+          >
+            <CloudOff size={14} className="shrink-0" />
+            <span>{t('btn_sync_clear_cloud')}</span>
+          </button>
         </div>
       )}
 

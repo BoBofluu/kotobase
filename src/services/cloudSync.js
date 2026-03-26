@@ -1,5 +1,5 @@
 import {
-  doc, getDoc, setDoc, getDocs, collection,
+  doc, getDoc, setDoc, getDocs, deleteDoc, collection,
   writeBatch, serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
@@ -12,10 +12,31 @@ function verifyUid(uid) {
 
 const BATCH_LIMIT = 499;
 
+/** 內部工具：batch 寫入 helper */
+async function batchWriteWords(uid, words) {
+  let batch = writeBatch(db);
+  let opCount = 0;
+
+  const flush = async () => {
+    if (opCount > 0) {
+      await batch.commit();
+      batch = writeBatch(db);
+      opCount = 0;
+    }
+  };
+
+  for (const word of words) {
+    const wordRef = doc(db, 'users', uid, 'words', String(word.id));
+    batch.set(wordRef, word);
+    opCount++;
+    if (opCount >= BATCH_LIMIT) await flush();
+  }
+
+  return { batch, opCount, flush };
+}
+
 /**
- * 上傳資料到 Firestore（subcollection 架構）
- * - categories + updatedAt 存在主文件 users/{uid}
- * - 每筆 word 存在 users/{uid}/words/{wordId}
+ * 取代模式上傳：本地完全覆蓋雲端
  */
 export async function uploadToCloud(uid, words, categories) {
   verifyUid(uid);
@@ -23,7 +44,7 @@ export async function uploadToCloud(uid, words, categories) {
   const userRef = doc(db, 'users', uid);
   const wordsCol = collection(db, 'users', uid, 'words');
 
-  // 1. 更新主文件（categories + updatedAt）
+  // 1. 更新主文件
   await setDoc(userRef, {
     categories,
     updatedAt: serverTimestamp(),
@@ -34,43 +55,82 @@ export async function uploadToCloud(uid, words, categories) {
   const existingIds = new Set(existingSnap.docs.map(d => d.id));
   const localIds = new Set(words.map(w => String(w.id)));
 
-  // 3. Batch 寫入：新增/更新 words + 刪除孤兒
+  // 3. 寫入本地 words
+  const { batch, opCount, flush } = await batchWriteWords(uid, words);
+
+  // 4. 刪除雲端有但本地沒有的（孤兒）
+  let currentBatch = batch;
+  let currentCount = opCount;
+  for (const existingId of existingIds) {
+    if (!localIds.has(existingId)) {
+      const wordRef = doc(db, 'users', uid, 'words', existingId);
+      currentBatch.delete(wordRef);
+      currentCount++;
+      if (currentCount >= BATCH_LIMIT) {
+        await currentBatch.commit();
+        currentBatch = writeBatch(db);
+        currentCount = 0;
+      }
+    }
+  }
+  if (currentCount > 0) await currentBatch.commit();
+  else await flush();
+}
+
+/**
+ * 合併模式上傳：本地資料合併到雲端（保留雲端獨有的資料）
+ */
+export async function mergeUploadToCloud(uid, words, categories) {
+  verifyUid(uid);
+
+  const userRef = doc(db, 'users', uid);
+
+  // 1. 讀取雲端 categories 並合併（本地優先）
+  const snap = await getDoc(userRef);
+  const cloudCats = snap.exists() ? snap.data().categories : null;
+  const mergedCats = mergeCategories(categories, cloudCats);
+
+  await setDoc(userRef, {
+    categories: mergedCats,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+
+  // 2. 只寫入本地 words（set = 同 id 覆蓋，不同 id 新增，不刪除雲端獨有的）
+  const { flush } = await batchWriteWords(uid, words);
+  await flush();
+}
+
+/**
+ * 清除雲端所有資料
+ */
+export async function clearCloud(uid) {
+  verifyUid(uid);
+
+  const userRef = doc(db, 'users', uid);
+  const wordsCol = collection(db, 'users', uid, 'words');
+
+  // 1. 刪除所有 words
+  const wordsSnap = await getDocs(wordsCol);
   let batch = writeBatch(db);
   let opCount = 0;
 
-  const flushBatch = async () => {
-    if (opCount > 0) {
+  for (const wordDoc of wordsSnap.docs) {
+    batch.delete(wordDoc.ref);
+    opCount++;
+    if (opCount >= BATCH_LIMIT) {
       await batch.commit();
       batch = writeBatch(db);
       opCount = 0;
     }
-  };
-
-  // 新增/更新每筆 word
-  for (const word of words) {
-    const wordRef = doc(db, 'users', uid, 'words', String(word.id));
-    batch.set(wordRef, word);
-    opCount++;
-    if (opCount >= BATCH_LIMIT) await flushBatch();
   }
+  if (opCount > 0) await batch.commit();
 
-  // 刪除雲端有但本地沒有的（孤兒）
-  for (const existingId of existingIds) {
-    if (!localIds.has(existingId)) {
-      const wordRef = doc(db, 'users', uid, 'words', existingId);
-      batch.delete(wordRef);
-      opCount++;
-      if (opCount >= BATCH_LIMIT) await flushBatch();
-    }
-  }
-
-  await flushBatch();
+  // 2. 刪除主文件
+  await deleteDoc(userRef);
 }
 
 /**
- * 從 Firestore 下載資料（相容新舊格式）
- * - 新格式：從 subcollection 讀取 words
- * - 舊格式：從主文件的 words 陣列讀取（向下相容）
+ * 從 Firestore 下載資料
  */
 export async function downloadFromCloud(uid) {
   verifyUid(uid);
