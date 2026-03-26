@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X, Plus, Trash2, Palette } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -23,6 +24,12 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
   }, [safeCategories, selectedCatId]);
 
   useEscClose(onClose);
+
+  // 鎖定背景滾動
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
 
   const selectedCatColor = safeCategories[selectedCatId]?.customColor || PRESET_COLORS[5];
 
@@ -66,9 +73,9 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
   const btnClass = "text-[14px] text-[#818cf8] border border-[#818cf8] px-4 py-2 rounded-xl hover:bg-[#818cf8] hover:text-white transition-all font-bold focus:outline-none flex items-center gap-2 active:scale-95";
   const subBtnClass = "text-[14px] text-[#818cf8] border border-[#818cf8] px-3 py-1.5 rounded-xl hover:bg-[#818cf8] hover:text-white transition-all font-bold focus:outline-none flex items-center gap-1.5 active:scale-95";
 
-  return (
-    <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in duration-200 text-white">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in duration-200 text-white" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-[#333]"><h2 className="text-lg font-bold">{t('btn_manage_category')}</h2><button onClick={onClose} className="p-1 hover:bg-[#333] rounded-lg transition-colors text-[#888]"><X size={20} /></button></div>
         <div className="p-5 flex-1 overflow-y-auto flex flex-col gap-8 custom-scrollbar">
           {/* 新增分類 */}
@@ -120,7 +127,8 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
         </div>
         <div className="p-4 bg-[#252525] border-t border-[#333] flex justify-end"><button onClick={onClose} className="bg-white text-black px-8 py-2.5 rounded-xl font-bold active:scale-95 transition-all shadow-lg">{t('btn_done')}</button></div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
