@@ -28,9 +28,9 @@ function SubcatFilterModal({ categories, selectedSubcats, onToggle, onClear, onC
             </div>
           ))}
         </div>
-        <div className="p-4 border-t border-[#3f3f3f] flex gap-3">
-          <button onClick={onClear} className="flex-1 py-2.5 text-[14px] text-[#b3b3b3] border border-[#3f3f3f] rounded-[10px] hover:bg-[#2c2c2c] transition-colors">{t('clear')}</button>
-          <button onClick={onClose} className="flex-1 py-2.5 text-[14px] bg-[#818cf8] text-white rounded-[10px] font-bold active:scale-95 transition-all">{t('btn_confirm')}</button>
+        <div className="p-4 border-t border-[#3f3f3f] grid grid-cols-2 gap-3">
+          <button onClick={onClear} className="py-2.5 text-[14px] text-[#b3b3b3] border border-[#3f3f3f] rounded-[10px] hover:bg-[#2c2c2c] transition-colors truncate px-2">{t('clear')}</button>
+          <button onClick={onClose} className="py-2.5 text-[14px] bg-[#818cf8] text-white rounded-[10px] font-bold active:scale-95 transition-all truncate px-2">{t('btn_confirm')}</button>
         </div>
       </div>
     </div>

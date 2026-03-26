@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Copy, Trash2, FileDown, Globe, ChevronDown, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Copy, Trash2, FileDown, Globe, MessageSquare } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { clsx } from 'clsx';
 import FuriganaText from '../components/FuriganaText';
@@ -292,7 +292,7 @@ const handleDelete = () => {
                         className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-[12px] font-bold transition-all ${showEnPrompt ? 'bg-[#818cf8]/20 text-[#818cf8] border border-[#818cf8]/30' : 'bg-[#2c2c2c] text-[#555] border border-[#3f3f3f] hover:text-[#b3b3b3]'}`}
                       >
                         <MessageSquare size={12} />
-                        <span>Prompt</span>
+                        <span>{t('label_prompt')}</span>
                       </button>
                     </div>
                     {showEnPrompt && (
@@ -300,7 +300,7 @@ const handleDelete = () => {
                         <textarea
                           value={ttsPrompt}
                           onChange={(e) => handlePromptChange(e.target.value)}
-                          placeholder="e.g. Read aloud in a warm, welcoming tone."
+                          placeholder={t('placeholder_prompt')}
                           rows={2}
                           className="w-full bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-medium leading-relaxed resize-none transition-colors"
                         />
@@ -322,7 +322,7 @@ const handleDelete = () => {
                     jpTextareaHeightRef.current = jpTextareaRef.current.style.height || jpTextareaRef.current.offsetHeight + 'px';
                   }
                   setShowFurigana(!showFurigana);
-                }} active={showFurigana} />
+                }} />
             </AppField>
 
             {/* 日文 TTS 控制區（僅登入時顯示） */}
@@ -336,7 +336,7 @@ const handleDelete = () => {
                   >
                     {GEMINI_VOICES.map((v) => (
                       <option key={v.name} value={v.name}>
-                        {v.name} ({v.gender === 'FEMALE' ? 'Female' : 'Male'})
+                        {v.name} ({v.gender === 'FEMALE' ? t('gender_female') : t('gender_male')})
                       </option>
                     ))}
                   </select>
@@ -348,7 +348,7 @@ const handleDelete = () => {
                     className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-[12px] font-bold transition-all ${showJpPrompt ? 'bg-[#818cf8]/20 text-[#818cf8] border border-[#818cf8]/30' : 'bg-[#2c2c2c] text-[#555] border border-[#3f3f3f] hover:text-[#b3b3b3]'}`}
                   >
                     <MessageSquare size={12} />
-                    <span>Prompt</span>
+                    <span>{t('label_prompt')}</span>
                   </button>
                 </div>
 
@@ -357,7 +357,7 @@ const handleDelete = () => {
                     <textarea
                       value={ttsPrompt}
                       onChange={(e) => handlePromptChange(e.target.value)}
-                      placeholder="e.g. Read aloud in a warm, welcoming tone."
+                      placeholder={t('placeholder_prompt')}
                       rows={2}
                       className="w-full bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-medium leading-relaxed resize-none transition-colors"
                     />

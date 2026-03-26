@@ -1,4 +1,7 @@
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  doc, getDoc, setDoc, getDocs, collection,
+  writeBatch, serverTimestamp,
+} from 'firebase/firestore';
 import { db, auth } from './firebase';
 
 function verifyUid(uid) {
@@ -7,30 +10,83 @@ function verifyUid(uid) {
   }
 }
 
+const BATCH_LIMIT = 499;
+
 /**
- * 上傳資料到 Firestore
+ * 上傳資料到 Firestore（subcollection 架構）
+ * - categories + updatedAt 存在主文件 users/{uid}
+ * - 每筆 word 存在 users/{uid}/words/{wordId}
  */
 export async function uploadToCloud(uid, words, categories) {
   verifyUid(uid);
-  const ref = doc(db, 'users', uid);
-  await setDoc(ref, {
-    words,
+
+  const userRef = doc(db, 'users', uid);
+  const wordsCol = collection(db, 'users', uid, 'words');
+
+  // 1. 更新主文件（categories + updatedAt）
+  await setDoc(userRef, {
     categories,
     updatedAt: serverTimestamp(),
   }, { merge: true });
+
+  // 2. 取得雲端現有 word IDs
+  const existingSnap = await getDocs(wordsCol);
+  const existingIds = new Set(existingSnap.docs.map(d => d.id));
+  const localIds = new Set(words.map(w => String(w.id)));
+
+  // 3. Batch 寫入：新增/更新 words + 刪除孤兒
+  let batch = writeBatch(db);
+  let opCount = 0;
+
+  const flushBatch = async () => {
+    if (opCount > 0) {
+      await batch.commit();
+      batch = writeBatch(db);
+      opCount = 0;
+    }
+  };
+
+  // 新增/更新每筆 word
+  for (const word of words) {
+    const wordRef = doc(db, 'users', uid, 'words', String(word.id));
+    batch.set(wordRef, word);
+    opCount++;
+    if (opCount >= BATCH_LIMIT) await flushBatch();
+  }
+
+  // 刪除雲端有但本地沒有的（孤兒）
+  for (const existingId of existingIds) {
+    if (!localIds.has(existingId)) {
+      const wordRef = doc(db, 'users', uid, 'words', existingId);
+      batch.delete(wordRef);
+      opCount++;
+      if (opCount >= BATCH_LIMIT) await flushBatch();
+    }
+  }
+
+  await flushBatch();
 }
 
 /**
- * 從 Firestore 下載資料
+ * 從 Firestore 下載資料（相容新舊格式）
+ * - 新格式：從 subcollection 讀取 words
+ * - 舊格式：從主文件的 words 陣列讀取（向下相容）
  */
 export async function downloadFromCloud(uid) {
   verifyUid(uid);
-  const ref = doc(db, 'users', uid);
-  const snap = await getDoc(ref);
+
+  const userRef = doc(db, 'users', uid);
+  const snap = await getDoc(userRef);
   if (!snap.exists()) return null;
+
   const data = snap.data();
+
+  const wordsCol = collection(db, 'users', uid, 'words');
+  const wordsSnap = await getDocs(wordsCol);
+  const words = wordsSnap.docs.map(d => d.data());
+
   return {
-    words: data.words || [],
+    words,
     categories: data.categories || null,
     updatedAt: data.updatedAt,
   };

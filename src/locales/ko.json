@@ -87,7 +87,7 @@
     "label_data_management": "데이터 관리",
     "btn_export": "백업 내보내기",
     "btn_import": "데이터 가져오기",
-    "msg_import_hint": "신구 버전의 백업 파일(.json)을 지원합니다",
+    "msg_import_hint": "백업 파일(.json)을 지원합니다",
     "msg_import_title": "데이터 가져오기",
     "msg_import_found": "{{count}}개의 데이터를 찾았습니다",
     "msg_import_mode": "가져오기 방법을 선택하세요:",
@@ -124,5 +124,9 @@
     "lang_ko": "한국어",
     "error_title": "오류가 발생했습니다",
     "error_message": "예상치 못한 오류가 발생했습니다",
-    "btn_reload": "새로고침"
+    "btn_reload": "새로고침",
+    "label_prompt": "스타일 지시",
+    "placeholder_prompt": "예: Read aloud in a warm, welcoming tone.",
+    "gender_female": "여성",
+    "gender_male": "남성"
 }

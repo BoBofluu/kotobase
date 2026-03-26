@@ -264,7 +264,7 @@ function SettingsPage() {
                 <span className="text-[16px] font-bold text-white truncate">{user.displayName || t('label_account')}</span>
                 <span className="text-[13px] text-[#555] truncate">{user.email}</span>
               </div>
-              <button onClick={handleSignOut} className="flex items-center gap-2 text-[14px] text-[#ff6b6b] border border-[#ff6b6b]/30 px-3 py-1.5 rounded-xl hover:bg-[#ff6b6b] hover:text-white transition-all font-bold">
+              <button onClick={handleSignOut} className="flex items-center gap-2 text-[14px] text-[#ff6b6b] border border-[#ff6b6b]/30 px-3 py-1.5 rounded-xl hover:bg-[#ff6b6b] hover:text-white transition-all font-bold shrink-0 whitespace-nowrap">
                 <LogOut size={14} />
                 <span>{t('btn_sign_out')}</span>
               </button>
@@ -290,14 +290,14 @@ function SettingsPage() {
           <Download className="text-[#818cf8]" size={24} />
           <span className="text-[16px] font-bold text-white">{t('label_data_management')}</span>
         </div>
-        <div className="flex gap-3">
-          <button onClick={handleExport} className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#818cf8]/10 border border-[#818cf8]/30 text-[#818cf8] rounded-xl font-bold hover:bg-[#818cf8] hover:text-white transition-all active:scale-[0.98]">
-            <Download size={16} />
-            <span>{t('btn_export')}</span>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={handleExport} className="flex items-center justify-center gap-2 py-3 px-2 bg-[#818cf8]/10 border border-[#818cf8]/30 text-[#818cf8] rounded-xl font-bold hover:bg-[#818cf8] hover:text-white transition-all active:scale-[0.98] text-[14px]">
+            <Download size={16} className="shrink-0" />
+            <span className="truncate">{t('btn_export')}</span>
           </button>
-          <button onClick={handleImport} className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#f59e0b]/10 border border-[#f59e0b]/30 text-[#f59e0b] rounded-xl font-bold hover:bg-[#f59e0b] hover:text-white transition-all active:scale-[0.98]">
-            <Upload size={16} />
-            <span>{t('btn_import')}</span>
+          <button onClick={handleImport} className="flex items-center justify-center gap-2 py-3 px-2 bg-[#f59e0b]/10 border border-[#f59e0b]/30 text-[#f59e0b] rounded-xl font-bold hover:bg-[#f59e0b] hover:text-white transition-all active:scale-[0.98] text-[14px]">
+            <Upload size={16} className="shrink-0" />
+            <span className="truncate">{t('btn_import')}</span>
           </button>
         </div>
         <p className="text-[12px] text-[#444] mt-2">{t('msg_import_hint')}</p>
@@ -310,22 +310,22 @@ function SettingsPage() {
             <Cloud className="text-[#10b981]" size={24} />
             <span className="text-[16px] font-bold text-white">{t('label_cloud_sync')}</span>
           </div>
-          <div className="flex gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={handleSyncToCloud}
               disabled={syncing}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 bg-[#10b981]/10 border border-[#10b981]/30 text-[#10b981] rounded-xl font-bold hover:bg-[#10b981] hover:text-white transition-all active:scale-[0.98] ${syncing ? 'opacity-60 cursor-wait' : ''}`}
+              className={`flex items-center justify-center gap-2 py-3 px-2 bg-[#10b981]/10 border border-[#10b981]/30 text-[#10b981] rounded-xl font-bold hover:bg-[#10b981] hover:text-white transition-all active:scale-[0.98] text-[14px] ${syncing ? 'opacity-60 cursor-wait' : ''}`}
             >
-              {syncing ? <RefreshCw size={16} className="animate-spin" /> : <Upload size={16} />}
-              <span>{t('btn_sync_upload')}</span>
+              {syncing ? <RefreshCw size={16} className="shrink-0 animate-spin" /> : <Upload size={16} className="shrink-0" />}
+              <span className="truncate">{t('btn_sync_upload')}</span>
             </button>
             <button
               onClick={handleSyncFromCloud}
               disabled={syncing}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] rounded-xl font-bold hover:bg-[#3b82f6] hover:text-white transition-all active:scale-[0.98] ${syncing ? 'opacity-60 cursor-wait' : ''}`}
+              className={`flex items-center justify-center gap-2 py-3 px-2 bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] rounded-xl font-bold hover:bg-[#3b82f6] hover:text-white transition-all active:scale-[0.98] text-[14px] ${syncing ? 'opacity-60 cursor-wait' : ''}`}
             >
-              {syncing ? <RefreshCw size={16} className="animate-spin" /> : <Download size={16} />}
-              <span>{t('btn_sync_download')}</span>
+              {syncing ? <RefreshCw size={16} className="shrink-0 animate-spin" /> : <Download size={16} className="shrink-0" />}
+              <span className="truncate">{t('btn_sync_download')}</span>
             </button>
           </div>
           <p className="text-[12px] text-[#444] mt-2">{t('msg_sync_hint')}</p>

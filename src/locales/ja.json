@@ -87,7 +87,7 @@
     "label_data_management": "データ管理",
     "btn_export": "バックアップ",
     "btn_import": "インポート",
-    "msg_import_hint": "新旧バージョンのバックアップファイル（.json）に対応",
+    "msg_import_hint": "バックアップファイル（.json）に対応",
     "msg_import_title": "データインポート",
     "msg_import_found": "{{count}} 件のデータが見つかりました",
     "msg_import_mode": "インポート方法を選択してください：",
@@ -124,5 +124,9 @@
     "lang_ko": "한국어",
     "error_title": "エラーが発生しました",
     "error_message": "予期しないエラーが発生しました",
-    "btn_reload": "再読み込み"
+    "btn_reload": "再読み込み",
+    "label_prompt": "スタイル指示",
+    "placeholder_prompt": "例：Read aloud in a warm, welcoming tone.",
+    "gender_female": "女性",
+    "gender_male": "男性"
 }

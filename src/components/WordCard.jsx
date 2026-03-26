@@ -39,4 +39,4 @@ function WordCard({ word, categories, onClick }) {
   );
 }
 
-export default WordCard;
+export default React.memo(WordCard);

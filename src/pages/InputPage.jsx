@@ -77,7 +77,7 @@ function InputPage({ onSave, categories, addCategory, updateCategory, deleteCate
       )}
       <div className="flex flex-col gap-3">
         <AppField label={t('label_content')}>
-          <AppButton text={showFurigana ? t('btn_edit_original') : t('btn_show_furigana')} action={() => setShowFurigana(!showFurigana)} active={showFurigana} />
+          <AppButton text={showFurigana ? t('btn_edit_original') : t('btn_show_furigana')} action={() => setShowFurigana(!showFurigana)} />
         </AppField>
         <div className="min-h-[120px] mt-3">
           {showFurigana ? (

@@ -87,7 +87,7 @@
     "label_data_management": "資料管理",
     "btn_export": "匯出備份",
     "btn_import": "匯入資料",
-    "msg_import_hint": "支援匯入新舊版本的備份檔（.json）",
+    "msg_import_hint": "支援匯入備份檔（.json）",
     "msg_import_title": "匯入資料",
     "msg_import_found": "找到 {{count}} 筆資料",
     "msg_import_mode": "請選擇匯入方式：",
@@ -124,5 +124,9 @@
     "lang_ko": "한국어",
     "error_title": "發生錯誤",
     "error_message": "頁面發生了未預期的錯誤",
-    "btn_reload": "重新載入"
+    "btn_reload": "重新載入",
+    "label_prompt": "風格指令",
+    "placeholder_prompt": "例如：Read aloud in a warm, welcoming tone.",
+    "gender_female": "女",
+    "gender_male": "男"
 }
