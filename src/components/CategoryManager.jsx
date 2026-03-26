@@ -88,7 +88,7 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
           <div className="border-t border-[#333]" />
 
           {/* 既有分類列表 */}
-          <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto pr-1">
+          <div className="flex flex-col gap-2">
             {Object.entries(safeCategories).map(([id, cat]) => (
               <div key={id} className="flex flex-col">
                 <div className={clsx("group flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all", selectedCatId === id ? "bg-[#2c2c2c] border-[#818cf8]" : "bg-[#252525] border-transparent hover:border-[#444]")} onClick={() => setSelectedCatId(id)}>
