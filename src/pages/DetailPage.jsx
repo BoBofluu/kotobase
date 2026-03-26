@@ -86,6 +86,10 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
   const [ttsPrompt, setTtsPrompt] = useState(
     () => localStorage.getItem(STORAGE_KEYS.TTS_PROMPT) || 'Read aloud in a warm, welcoming tone.'
   );
+  const [selectedPresetId, setSelectedPresetId] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.TTS_PROMPT) || '';
+    return PROMPT_PRESETS.find(p => p.value === saved)?.id || '';
+  });
   const [showJpPrompt, setShowJpPrompt] = useState(false);
   const [showEnPrompt, setShowEnPrompt] = useState(false);
 
@@ -200,8 +204,18 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
     localStorage.setItem(STORAGE_KEYS.TTS_VOICE, voice);
   };
 
+  const handlePresetChange = (presetId) => {
+    const preset = PROMPT_PRESETS.find(p => p.id === presetId);
+    if (preset) {
+      setSelectedPresetId(presetId);
+      setTtsPrompt(preset.value);
+      localStorage.setItem(STORAGE_KEYS.TTS_PROMPT, preset.value);
+    }
+  };
+
   const handlePromptChange = (value) => {
     setTtsPrompt(value);
+    setSelectedPresetId(PROMPT_PRESETS.find(p => p.value === value)?.id || '');
     localStorage.setItem(STORAGE_KEYS.TTS_PROMPT, value);
   };
 
@@ -324,8 +338,8 @@ const handleDelete = () => {
                     {showEnPrompt && (
                       <div className="animate-in fade-in duration-200 flex flex-col gap-2">
                         <select
-                          value={PROMPT_PRESETS.find(p => p.value === ttsPrompt)?.id || ''}
-                          onChange={(e) => { const preset = PROMPT_PRESETS.find(p => p.id === e.target.value); if (preset) handlePromptChange(preset.value); }}
+                          value={selectedPresetId}
+                          onChange={(e) => handlePresetChange(e.target.value)}
                           className="appearance-none bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-bold cursor-pointer"
                         >
                           <option value="">{t('label_prompt_preset')}</option>
