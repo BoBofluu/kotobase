@@ -129,10 +129,21 @@ function SettingsPage() {
     e.target.value = '';
   };
 
-  // ===== 雲端同步 =====
+  // ===== 雲端同步共用 wrapper =====
+  const runSyncAction = async (action, logLabel) => {
+    setSyncing(true);
+    try {
+      await action();
+    } catch (error) {
+      console.error(`${logLabel} error:`, error);
+      toast('error', t('msg_sync_error'), 2000);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSyncToCloud = async () => {
     if (!user) return;
-
     const localWords = getLocalWords();
     const localCats = getLocalCategories();
 
@@ -142,11 +153,9 @@ function SettingsPage() {
       confirmText: t('btn_import_merge'),
       denyText: t('btn_sync_replace_cloud'),
     });
-
     if (!result.isConfirmed && !result.isDenied) return;
 
-    setSyncing(true);
-    try {
+    runSyncAction(async () => {
       if (result.isConfirmed) {
         await mergeUploadToCloud(user.uid, localWords, localCats);
         toast('success', t('msg_sync_merge_upload_success'));
@@ -154,12 +163,7 @@ function SettingsPage() {
         await uploadToCloud(user.uid, localWords, localCats);
         toast('success', t('msg_sync_upload_success'));
       }
-    } catch (error) {
-      console.error('Sync upload error:', error);
-      toast('error', t('msg_sync_error'), 2000);
-    } finally {
-      setSyncing(false);
-    }
+    }, 'Sync upload');
   };
 
   const handleClearCloud = async () => {
@@ -167,26 +171,19 @@ function SettingsPage() {
     const result = await confirmDelete(t, t('btn_sync_clear_cloud'), t('msg_sync_clear_confirm'));
     if (!result.isConfirmed) return;
 
-    setSyncing(true);
-    try {
+    runSyncAction(async () => {
       await clearCloud(user.uid);
       toast('success', t('msg_sync_clear_success'));
-    } catch (error) {
-      console.error('Clear cloud error:', error);
-      toast('error', t('msg_sync_error'), 2000);
-    } finally {
-      setSyncing(false);
-    }
+    }, 'Clear cloud');
   };
 
   const handleSyncFromCloud = async () => {
     if (!user) return;
-    setSyncing(true);
-    try {
+
+    runSyncAction(async () => {
       const cloudData = await downloadFromCloud(user.uid);
       if (!cloudData || (!cloudData.words?.length)) {
         toast('info', t('msg_sync_no_cloud_data'));
-        setSyncing(false);
         return;
       }
 
@@ -215,15 +212,23 @@ function SettingsPage() {
       if (result.isConfirmed || result.isDenied) {
         setTimeout(() => window.location.reload(), 500);
       }
-    } catch (error) {
-      console.error('Sync download error:', error);
-      toast('error', t('msg_sync_error'), 2000);
-    } finally {
-      setSyncing(false);
-    }
+    }, 'Sync download');
   };
 
   const cardClass = "bg-[#1e1e1e] p-5 rounded-2xl flex items-center justify-between cursor-pointer active:bg-[#2c2c2c] transition-colors border border-[#3f3f3f]";
+
+  /** 彩色動作按鈕（匯出匯入/雲端同步共用） */
+  const ColorBtn = ({ onClick, color, icon, text, disabled, className = '' }) => (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex items-center justify-center gap-2 py-3 px-2 bg-[${color}]/10 border border-[${color}]/30 text-[${color}] rounded-xl font-bold hover:bg-[${color}] hover:text-white transition-all active:scale-[0.98] text-[14px] ${disabled ? 'opacity-60 cursor-wait' : ''} ${className}`}
+      style={{ backgroundColor: `${color}1a`, borderColor: `${color}4d`, color: color }}
+    >
+      {icon}
+      <span className="truncate">{text}</span>
+    </button>
+  );
 
   return (
     <div className="flex flex-col gap-4 w-full">
@@ -279,14 +284,8 @@ function SettingsPage() {
           <span className="text-[16px] font-bold text-white">{t('label_data_management')}</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={handleExport} className="flex items-center justify-center gap-2 py-3 px-2 bg-[#818cf8]/10 border border-[#818cf8]/30 text-[#818cf8] rounded-xl font-bold hover:bg-[#818cf8] hover:text-white transition-all active:scale-[0.98] text-[14px]">
-            <Download size={16} className="shrink-0" />
-            <span className="truncate">{t('btn_export')}</span>
-          </button>
-          <button onClick={handleImport} className="flex items-center justify-center gap-2 py-3 px-2 bg-[#f59e0b]/10 border border-[#f59e0b]/30 text-[#f59e0b] rounded-xl font-bold hover:bg-[#f59e0b] hover:text-white transition-all active:scale-[0.98] text-[14px]">
-            <Upload size={16} className="shrink-0" />
-            <span className="truncate">{t('btn_import')}</span>
-          </button>
+          <ColorBtn onClick={handleExport} color="#818cf8" icon={<Download size={16} className="shrink-0" />} text={t('btn_export')} />
+          <ColorBtn onClick={handleImport} color="#f59e0b" icon={<Upload size={16} className="shrink-0" />} text={t('btn_import')} />
         </div>
         <p className="text-[12px] text-[#444] mt-2">{t('msg_import_hint')}</p>
       </div>
@@ -299,32 +298,11 @@ function SettingsPage() {
             <span className="text-[16px] font-bold text-white">{t('label_cloud_sync')}</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={handleSyncToCloud}
-              disabled={syncing}
-              className={`flex items-center justify-center gap-2 py-3 px-2 bg-[#10b981]/10 border border-[#10b981]/30 text-[#10b981] rounded-xl font-bold hover:bg-[#10b981] hover:text-white transition-all active:scale-[0.98] text-[14px] ${syncing ? 'opacity-60 cursor-wait' : ''}`}
-            >
-              {syncing ? <RefreshCw size={16} className="shrink-0 animate-spin" /> : <Upload size={16} className="shrink-0" />}
-              <span className="truncate">{t('btn_sync_upload')}</span>
-            </button>
-            <button
-              onClick={handleSyncFromCloud}
-              disabled={syncing}
-              className={`flex items-center justify-center gap-2 py-3 px-2 bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] rounded-xl font-bold hover:bg-[#3b82f6] hover:text-white transition-all active:scale-[0.98] text-[14px] ${syncing ? 'opacity-60 cursor-wait' : ''}`}
-            >
-              {syncing ? <RefreshCw size={16} className="shrink-0 animate-spin" /> : <Download size={16} className="shrink-0" />}
-              <span className="truncate">{t('btn_sync_download')}</span>
-            </button>
+            <ColorBtn onClick={handleSyncToCloud} color="#10b981" disabled={syncing} icon={syncing ? <RefreshCw size={16} className="shrink-0 animate-spin" /> : <Upload size={16} className="shrink-0" />} text={t('btn_sync_upload')} />
+            <ColorBtn onClick={handleSyncFromCloud} color="#3b82f6" disabled={syncing} icon={syncing ? <RefreshCw size={16} className="shrink-0 animate-spin" /> : <Download size={16} className="shrink-0" />} text={t('btn_sync_download')} />
           </div>
           <p className="text-[12px] text-[#444] mt-2">{t('msg_sync_hint')}</p>
-          <button
-            onClick={handleClearCloud}
-            disabled={syncing}
-            className={`flex items-center justify-center gap-2 mt-3 w-full py-2.5 px-2 bg-[#ff6b6b]/10 border border-[#ff6b6b]/30 text-[#ff6b6b] rounded-xl font-bold hover:bg-[#ff6b6b] hover:text-white transition-all active:scale-[0.98] text-[13px] ${syncing ? 'opacity-60 cursor-wait' : ''}`}
-          >
-            <CloudOff size={14} className="shrink-0" />
-            <span>{t('btn_sync_clear_cloud')}</span>
-          </button>
+          <ColorBtn onClick={handleClearCloud} color="#ff6b6b" disabled={syncing} icon={<CloudOff size={14} className="shrink-0" />} text={t('btn_sync_clear_cloud')} className="mt-3 w-full text-[13px]" />
         </div>
       )}
 

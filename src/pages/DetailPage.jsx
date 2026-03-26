@@ -86,10 +86,9 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
   const [ttsPrompt, setTtsPrompt] = useState(
     () => localStorage.getItem(STORAGE_KEYS.TTS_PROMPT) || 'Read aloud in a warm, welcoming tone.'
   );
-  const [selectedPresetId, setSelectedPresetId] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.TTS_PROMPT) || '';
-    return PROMPT_PRESETS.find(p => p.value === saved)?.id || '';
-  });
+  const [selectedPresetId, setSelectedPresetId] = useState(
+    () => localStorage.getItem('ttsPresetId') || ''
+  );
   const [showJpPrompt, setShowJpPrompt] = useState(false);
   const [showEnPrompt, setShowEnPrompt] = useState(false);
 
@@ -209,13 +208,15 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
     if (preset) {
       setSelectedPresetId(presetId);
       setTtsPrompt(preset.value);
+      localStorage.setItem('ttsPresetId', presetId);
       localStorage.setItem(STORAGE_KEYS.TTS_PROMPT, preset.value);
     }
   };
 
   const handlePromptChange = (value) => {
     setTtsPrompt(value);
-    setSelectedPresetId(PROMPT_PRESETS.find(p => p.value === value)?.id || '');
+    setSelectedPresetId('');
+    localStorage.setItem('ttsPresetId', '');
     localStorage.setItem(STORAGE_KEYS.TTS_PROMPT, value);
   };
 
@@ -244,6 +245,38 @@ const handleDelete = () => {
       />
     );
   };
+
+  /** Prompt 展開/收合切換按鈕（英文日文共用） */
+  const renderPromptToggle = (isOpen, toggle) => (
+    <button
+      onClick={toggle}
+      className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-[12px] font-bold transition-all ${isOpen ? 'bg-[#818cf8]/20 text-[#818cf8] border border-[#818cf8]/30' : 'bg-[#2c2c2c] text-[#555] border border-[#3f3f3f] hover:text-[#b3b3b3]'}`}
+    >
+      <MessageSquare size={12} />
+      <span>{t('label_prompt')}</span>
+    </button>
+  );
+
+  const renderPromptEditor = () => (
+    <div className="animate-in fade-in duration-200 flex flex-col gap-2">
+      <select
+        value={selectedPresetId}
+        onChange={(e) => handlePresetChange(e.target.value)}
+        className="appearance-none bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-bold cursor-pointer"
+      >
+        <option value="">{t('label_prompt_preset')}</option>
+        {PROMPT_PRESETS.map(p => (<option key={p.id} value={p.id}>{p.label}</option>))}
+      </select>
+      <textarea
+        value={ttsPrompt}
+        onChange={(e) => handlePromptChange(e.target.value)}
+        placeholder={t('placeholder_prompt')}
+        rows={2}
+        className="w-full bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-medium leading-relaxed resize-none transition-colors"
+      />
+      <p className="text-[11px] text-[#444] mt-1">{t('msg_prompt_hint')}</p>
+    </div>
+  );
 
   const currentCat = categories?.[editedWord.category] || {};
   const catColor = currentCat.customColor || '#818cf8';
@@ -327,34 +360,9 @@ const handleDelete = () => {
                           {renderPlayer(editedWord.en_content, ev.lang, ev.key, t(ev.labelKey), ev.voice)}
                         </React.Fragment>
                       ))}
-                      <button
-                        onClick={() => setShowEnPrompt(!showEnPrompt)}
-                        className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-[12px] font-bold transition-all ${showEnPrompt ? 'bg-[#818cf8]/20 text-[#818cf8] border border-[#818cf8]/30' : 'bg-[#2c2c2c] text-[#555] border border-[#3f3f3f] hover:text-[#b3b3b3]'}`}
-                      >
-                        <MessageSquare size={12} />
-                        <span>{t('label_prompt')}</span>
-                      </button>
+                      {renderPromptToggle(showEnPrompt, () => setShowEnPrompt(!showEnPrompt))}
                     </div>
-                    {showEnPrompt && (
-                      <div className="animate-in fade-in duration-200 flex flex-col gap-2">
-                        <select
-                          value={selectedPresetId}
-                          onChange={(e) => handlePresetChange(e.target.value)}
-                          className="appearance-none bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-bold cursor-pointer"
-                        >
-                          <option value="">{t('label_prompt_preset')}</option>
-                          {PROMPT_PRESETS.map(p => (<option key={p.id} value={p.id}>{p.label}</option>))}
-                        </select>
-                        <textarea
-                          value={ttsPrompt}
-                          onChange={(e) => handlePromptChange(e.target.value)}
-                          placeholder={t('placeholder_prompt')}
-                          rows={2}
-                          className="w-full bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-medium leading-relaxed resize-none transition-colors"
-                        />
-                        <p className="text-[11px] text-[#444] mt-1">{t('msg_prompt_hint')}</p>
-                      </div>
-                    )}
+                    {showEnPrompt && renderPromptEditor()}
                   </div>
                 )}
 
@@ -391,35 +399,10 @@ const handleDelete = () => {
 
                   {renderPlayer(editedWord.jp_content, 'ja-JP', 'jp-main', t('btn_tts_jp'))}
 
-                  <button
-                    onClick={() => setShowJpPrompt(!showJpPrompt)}
-                    className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-[12px] font-bold transition-all ${showJpPrompt ? 'bg-[#818cf8]/20 text-[#818cf8] border border-[#818cf8]/30' : 'bg-[#2c2c2c] text-[#555] border border-[#3f3f3f] hover:text-[#b3b3b3]'}`}
-                  >
-                    <MessageSquare size={12} />
-                    <span>{t('label_prompt')}</span>
-                  </button>
+                  {renderPromptToggle(showJpPrompt, () => setShowJpPrompt(!showJpPrompt))}
                 </div>
 
-                {showJpPrompt && (
-                  <div className="animate-in fade-in duration-200 flex flex-col gap-2">
-                    <select
-                      value=""
-                      onChange={(e) => { if (e.target.value) handlePromptChange(e.target.value); e.target.value = ''; }}
-                      className="appearance-none bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-bold cursor-pointer"
-                    >
-                      <option value="">{t('label_prompt_preset')}</option>
-                      {PROMPT_PRESETS.map(p => (<option key={p.id} value={p.value}>{p.label}</option>))}
-                    </select>
-                    <textarea
-                      value={ttsPrompt}
-                      onChange={(e) => handlePromptChange(e.target.value)}
-                      placeholder={t('placeholder_prompt')}
-                      rows={2}
-                      className="w-full bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-medium leading-relaxed resize-none transition-colors"
-                    />
-                    <p className="text-[11px] text-[#444] mt-1">{t('msg_prompt_hint')}</p>
-                  </div>
-                )}
+                {showJpPrompt && renderPromptEditor()}
               </div>
             )}
             <div className="mt-3">
