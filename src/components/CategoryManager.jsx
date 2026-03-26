@@ -13,28 +13,28 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
   const [selectedCatId, setSelectedCatId] = useState('');
   const [newCatName, setNewCatName] = useState('');
   const [newSubcatName, setNewSubcatName] = useState('');
-  const [customColor, setCustomColor] = useState(PRESET_COLORS[5]);
+  const [newCatColor, setNewCatColor] = useState(PRESET_COLORS[5]);
 
   useEffect(() => {
     const keys = Object.keys(safeCategories);
     if (!selectedCatId && keys.length > 0) {
       setSelectedCatId(keys[0]);
-      setCustomColor(safeCategories[keys[0]].customColor || PRESET_COLORS[5]);
     }
   }, [safeCategories, selectedCatId]);
 
   useEscClose(onClose);
 
-  const handleChangeCatColor = (id, color) => {
-    if (!id) return;
-    updateCategory(id, { customColor: color });
-    setCustomColor(color);
+  const selectedCatColor = safeCategories[selectedCatId]?.customColor || PRESET_COLORS[5];
+
+  const handleEditCatColor = (color) => {
+    if (!selectedCatId) return;
+    updateCategory(selectedCatId, { customColor: color });
   };
 
   const handleAddCategory = () => {
     if (!newCatName.trim()) { alert('warning', t('msg_input_required'), t('msg_cat_name_empty')); return; }
     const newId = `cat_${Date.now()}`;
-    addCategory(newId, newCatName.trim(), customColor);
+    addCategory(newId, newCatName.trim(), newCatColor);
     setNewCatName(''); setSelectedCatId(newId);
   };
 
@@ -71,26 +71,38 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
       <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in duration-200 text-white">
         <div className="flex items-center justify-between p-4 border-b border-[#333]"><h2 className="text-lg font-bold">{t('btn_manage_category')}</h2><button onClick={onClose} className="p-1 hover:bg-[#333] rounded-lg transition-colors text-[#888]"><X size={20} /></button></div>
         <div className="p-5 flex-1 overflow-y-auto flex flex-col gap-8 custom-scrollbar">
-          <div className="flex flex-col gap-4">
+          {/* 新增分類 */}
+          <div className="flex flex-col gap-3">
             <h3 className="text-sm font-bold text-[#818cf8] uppercase tracking-wider">{t('label_main_cat_settings')}</h3>
-            <div className="flex flex-col gap-4">
-                <div className="flex gap-2">
-                    <input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder={t('placeholder_new_cat')} className="flex-1 bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-[#818cf8]" />
-                    <button onClick={handleAddCategory} className={btnClass}><Plus size={18} /> {t('btn_add')}</button>
-                </div>
-                <div className="flex flex-wrap gap-2.5 mt-1 px-1 items-center">
-                    {PRESET_COLORS.map(color => (<button key={color} onClick={() => handleChangeCatColor(selectedCatId, color)} className={clsx("w-6 h-6 rounded-full transition-all", customColor === color ? "ring-2 ring-white ring-offset-2 ring-offset-[#1a1a1a] scale-110" : "opacity-60 hover:opacity-100")} style={{ backgroundColor: color }} />))}
-                    <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#444] hover:scale-110 transition-transform"><input type="color" value={customColor} onChange={(e) => handleChangeCatColor(selectedCatId, e.target.value)} className="absolute -inset-2 w-10 h-10 cursor-pointer" /><Palette size={12} className="absolute inset-0 m-auto pointer-events-none text-white" /></div>
-                </div>
+            <div className="flex gap-2">
+              <input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder={t('placeholder_new_cat')} className="flex-1 bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-[#818cf8]" onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()} />
+              <button onClick={handleAddCategory} className={btnClass}><Plus size={18} /> {t('btn_add')}</button>
             </div>
-            <div className="flex flex-col gap-2 mt-2 max-h-[200px] overflow-y-auto pr-1">
-              {Object.entries(safeCategories).map(([id, cat]) => (
-                <div key={id} className={clsx("group flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all", selectedCatId === id ? "bg-[#2c2c2c] border-[#818cf8]" : "bg-[#252525] border-transparent hover:border-[#444]")} onClick={() => { setSelectedCatId(id); setCustomColor(cat.customColor || PRESET_COLORS[5]); }}>
+            <div className="flex flex-wrap gap-2.5 px-1 items-center">
+              {PRESET_COLORS.map(color => (<button key={color} onClick={() => setNewCatColor(color)} className={clsx("w-6 h-6 rounded-full transition-all", newCatColor === color ? "ring-2 ring-white ring-offset-2 ring-offset-[#1a1a1a] scale-110" : "opacity-60 hover:opacity-100")} style={{ backgroundColor: color }} />))}
+              <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#444] hover:scale-110 transition-transform"><input type="color" value={newCatColor} onChange={(e) => setNewCatColor(e.target.value)} className="absolute -inset-2 w-10 h-10 cursor-pointer" /><Palette size={12} className="absolute inset-0 m-auto pointer-events-none text-white" /></div>
+            </div>
+          </div>
+
+          {/* 分隔線 */}
+          <div className="border-t border-[#333]" />
+
+          {/* 既有分類列表 */}
+          <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto pr-1">
+            {Object.entries(safeCategories).map(([id, cat]) => (
+              <div key={id} className="flex flex-col">
+                <div className={clsx("group flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all", selectedCatId === id ? "bg-[#2c2c2c] border-[#818cf8]" : "bg-[#252525] border-transparent hover:border-[#444]")} onClick={() => setSelectedCatId(id)}>
                   <div className="flex items-center gap-3"><div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: cat.customColor }} /><span className={clsx("text-sm font-medium", selectedCatId === id ? "text-white" : "text-[#b3b3b3]")}>{cat.label}</span></div>
                   <button onClick={(e) => { e.stopPropagation(); handleDeleteCategory(id); }} className="text-[#ff6b6b] p-1.5 opacity-0 group-hover:opacity-100 hover:bg-[#333] rounded-lg transition-all"><Trash2 size={16} /></button>
                 </div>
-              ))}
-            </div>
+                {selectedCatId === id && (
+                  <div className="flex flex-wrap gap-2.5 px-3 py-2.5 items-center">
+                    {PRESET_COLORS.map(color => (<button key={color} onClick={() => handleEditCatColor(color)} className={clsx("w-5 h-5 rounded-full transition-all", selectedCatColor === color ? "ring-2 ring-white ring-offset-2 ring-offset-[#1a1a1a] scale-110" : "opacity-50 hover:opacity-100")} style={{ backgroundColor: color }} />))}
+                    <div className="relative w-5 h-5 rounded-full overflow-hidden border border-[#444] hover:scale-110 transition-transform"><input type="color" value={selectedCatColor} onChange={(e) => handleEditCatColor(e.target.value)} className="absolute -inset-2 w-10 h-10 cursor-pointer" /><Palette size={10} className="absolute inset-0 m-auto pointer-events-none text-white" /></div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
           <div className="flex flex-col gap-4 pt-6 border-t border-[#333]">
             <h3 className="text-sm font-bold text-[#818cf8] uppercase tracking-wider">{t('label_subcats_of', { name: safeCategories[selectedCatId]?.label || '' })}</h3>
