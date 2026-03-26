@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
 import BottomNavbar from './components/BottomNavbar';
 import InputPage from './pages/InputPage';
@@ -31,6 +32,7 @@ function App() {
     <div className="min-h-screen bg-[#1a1a1a] text-white pt-14 pb-16 font-sans">
       <Header />
       
+      <ErrorBoundary>
       <main className="p-4 max-w-[1600px] mx-auto w-full">
         {currentTab === 'input' && (
           <InputPage
@@ -71,6 +73,7 @@ function App() {
           />
         )}
       </main>
+      </ErrorBoundary>
 
       <BottomNavbar currentTab={currentTab} setTab={setCurrentTab} />
     </div>

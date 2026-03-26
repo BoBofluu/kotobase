@@ -110,5 +110,19 @@
     "msg_sync_no_cloud_data": "雲端沒有備份資料",
     "msg_sync_error": "同步失敗，請稍後再試",
     "msg_tts_not_authorized": "此帳號尚未開通語音功能",
-    "msg_tts_no_content": "沒有可朗讀的內容"
+    "msg_tts_no_content": "沒有可朗讀的內容",
+    "btn_tts_loading": "載入中...",
+    "btn_pause": "暫停",
+    "btn_resume": "繼續",
+    "btn_restart": "重頭播放",
+    "btn_stop": "停止",
+    "voice_us": "美國",
+    "voice_gb": "英國",
+    "voice_au": "澳洲",
+    "lang_zh_tw": "繁體中文",
+    "lang_ja": "日本語",
+    "lang_ko": "한국어",
+    "error_title": "發生錯誤",
+    "error_message": "頁面發生了未預期的錯誤",
+    "btn_reload": "重新載入"
 }

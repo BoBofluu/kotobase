@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import { fetchFurigana } from '../services/ttsApi';
 
 function FuriganaText({ text, className }) {
@@ -17,7 +18,6 @@ function FuriganaText({ text, className }) {
         if (isMounted) setTokens(parsed);
       } catch (error) {
         console.error("Furigana parse error:", error);
-        // API 失敗時顯示純文字（無假名）
         if (isMounted) setTokens([{ surface: text, reading: null }]);
       } finally {
         if (isMounted) setIsLoading(false);
@@ -28,7 +28,13 @@ function FuriganaText({ text, className }) {
     return () => { isMounted = false; };
   }, [text]);
 
-  if (isLoading) return <div className="text-[#555] animate-pulse">...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-4 text-[#818cf8]">
+        <Loader2 size={24} className="animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className={`whitespace-pre-wrap break-all leading-[2.5] ${className || ''}`} style={{ cursor: 'default' }}>

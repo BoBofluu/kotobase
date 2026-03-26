@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Copy, Trash2, FileDown, Globe, ChevronDown, MessageSquare } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -37,11 +37,11 @@ const GEMINI_VOICES = [
   { name: 'Zubenelgenubi', gender: 'MALE' },
 ];
 
-// 英文固定聲音
+// 英文固定聲音（label 用 i18n key）
 const EN_VOICES = [
-  { key: 'en-us', label: '美國', voice: 'Achernar', lang: 'en-us' },
-  { key: 'en-gb', label: '英國', voice: 'Fenrir', lang: 'en-gb' },
-  { key: 'en-au', label: '澳洲', voice: 'Aoede', lang: 'en-au' },
+  { key: 'en-us', labelKey: 'voice_us', voice: 'Achernar', lang: 'en-us' },
+  { key: 'en-gb', labelKey: 'voice_gb', voice: 'Fenrir', lang: 'en-gb' },
+  { key: 'en-au', labelKey: 'voice_au', voice: 'Aoede', lang: 'en-au' },
 ];
 
 function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onViewDuplicate, categories, addCategory, updateCategory, deleteCategory }) {
@@ -66,6 +66,17 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
   const [showJpPrompt, setShowJpPrompt] = useState(false);
   const [showEnPrompt, setShowEnPrompt] = useState(false);
 
+  // 保存日文 textarea 高度，切換平假名時不會被還原
+  const jpTextareaHeightRef = useRef(null);
+  const jpTextareaRef = useRef(null);
+
+  // debounce 儲存，避免拖曳 resize 時每個 onChange 都寫 localStorage
+  const saveTimerRef = useRef(null);
+  const debouncedUpdate = useCallback((field, value) => {
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => onUpdate(word.id, { [field]: value }), 300);
+  }, [onUpdate, word?.id]);
+
   useEffect(() => { if (word) setEditedWord({ ...word }); }, [word, wordId]);
 
   // 離開頁面時停止播放
@@ -78,7 +89,12 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
   const handleChange = (field, value) => {
     const updated = { ...editedWord, [field]: value };
     setEditedWord(updated);
-    onUpdate(word.id, { [field]: value });
+    // 文字欄位用 debounce 避免每次按鍵/拖曳都寫 localStorage
+    if (['title', 'jp_content', 'en_content', 'note'].includes(field)) {
+      debouncedUpdate(field, value);
+    } else {
+      onUpdate(word.id, { [field]: value });
+    }
   };
 
   const handleDuplicate = () => {
@@ -268,7 +284,7 @@ const handleDelete = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       {EN_VOICES.map((ev) => (
                         <React.Fragment key={ev.key}>
-                          {renderPlayer(editedWord.en_content, ev.lang, ev.key, `${ev.label} (${ev.voice})`, ev.voice)}
+                          {renderPlayer(editedWord.en_content, ev.lang, ev.key, `${t(ev.labelKey)} (${ev.voice})`, ev.voice)}
                         </React.Fragment>
                       ))}
                       <button
@@ -301,7 +317,12 @@ const handleDelete = () => {
         <div>
             <AppField label={t('label_content')}>
                 <AppButton text={t('btn_copy')} action={() => handleCopyText(editedWord.jp_content)} />
-                <AppButton text={showFurigana ? t('btn_edit_original') : t('btn_show_furigana')} action={() => setShowFurigana(!showFurigana)} active={showFurigana} />
+                <AppButton text={showFurigana ? t('btn_edit_original') : t('btn_show_furigana')} action={() => {
+                  if (!showFurigana && jpTextareaRef.current) {
+                    jpTextareaHeightRef.current = jpTextareaRef.current.style.height || jpTextareaRef.current.offsetHeight + 'px';
+                  }
+                  setShowFurigana(!showFurigana);
+                }} active={showFurigana} />
             </AppField>
 
             {/* 日文 TTS 控制區（僅登入時顯示） */}
@@ -351,7 +372,13 @@ const handleDelete = () => {
                         {editedWord.jp_content ? <FuriganaText text={editedWord.jp_content} /> : <span className="text-[#444] italic text-[14px]">{t('msg_no_content')}</span>}
                     </div>
                 ) : (
-                    <AppTextArea value={editedWord.jp_content} onChange={(e) => handleChange('jp_content', e.target.value)} minHeight="150px" className="mt-0" />
+                    <AppTextArea
+                      ref={jpTextareaRef}
+                      value={editedWord.jp_content}
+                      onChange={(e) => handleChange('jp_content', e.target.value)}
+                      minHeight={jpTextareaHeightRef.current || "150px"}
+                      className="mt-0"
+                    />
                 )}
             </div>
         </div>

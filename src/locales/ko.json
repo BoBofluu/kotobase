@@ -110,5 +110,19 @@
     "msg_sync_no_cloud_data": "클라우드에 백업 데이터가 없습니다",
     "msg_sync_error": "동기화에 실패했습니다. 나중에 다시 시도하세요",
     "msg_tts_not_authorized": "이 계정은 음성 기능이 활성화되지 않았습니다",
-    "msg_tts_no_content": "읽어줄 내용이 없습니다"
+    "msg_tts_no_content": "읽어줄 내용이 없습니다",
+    "btn_tts_loading": "로딩 중...",
+    "btn_pause": "일시정지",
+    "btn_resume": "재개",
+    "btn_restart": "처음부터",
+    "btn_stop": "정지",
+    "voice_us": "미국",
+    "voice_gb": "영국",
+    "voice_au": "호주",
+    "lang_zh_tw": "繁體中文",
+    "lang_ja": "日本語",
+    "lang_ko": "한국어",
+    "error_title": "오류가 발생했습니다",
+    "error_message": "예상치 못한 오류가 발생했습니다",
+    "btn_reload": "새로고침"
 }

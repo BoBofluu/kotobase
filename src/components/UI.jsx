@@ -45,13 +45,14 @@ export const AppInput = ({ className = "", ...props }) => (
   />
 );
 
-export const AppTextArea = ({ minHeight = "100px", className = "", ...props }) => (
-  <textarea 
-    {...props} 
+export const AppTextArea = React.forwardRef(({ minHeight = "100px", className = "", ...props }, ref) => (
+  <textarea
+    ref={ref}
+    {...props}
     style={{ minHeight, ...props.style }}
-    className={clsx(theme.input, "leading-relaxed", className)} 
+    className={clsx(theme.input, "leading-relaxed", className)}
   />
-);
+));
 
 export const AppSelect = ({ className = "", children, ...props }) => (
   <div className={clsx("relative w-full", className)}>

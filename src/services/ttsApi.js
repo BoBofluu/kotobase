@@ -8,10 +8,21 @@ const TTS_API_URL = import.meta.env.VITE_TTS_API_URL || '';
  * @param {object} options - 額外選項
  * @returns {Promise<string>} base64 編碼的音訊資料
  */
+const MAX_TEXT_LENGTH = 5000;
+const MAX_PROMPT_LENGTH = 500;
+
 export async function synthesizeSpeech(text, languageCode, idToken, options = {}) {
   if (!TTS_API_URL) {
     throw new Error('TTS API URL not configured');
   }
+
+  if (!text || text.length > MAX_TEXT_LENGTH) {
+    throw new Error(`Text must be 1-${MAX_TEXT_LENGTH} characters`);
+  }
+
+  const prompt = (options.prompt || '').slice(0, MAX_PROMPT_LENGTH);
+  const speakingRate = Math.min(4.0, Math.max(0.25, Number(options.speakingRate) || 1.0));
+  const pitch = Math.min(20, Math.max(-20, Number(options.pitch) || 0));
 
   const response = await fetch(`${TTS_API_URL}/tts`, {
     method: 'POST',
@@ -20,12 +31,12 @@ export async function synthesizeSpeech(text, languageCode, idToken, options = {}
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      text,
+      text: text.slice(0, MAX_TEXT_LENGTH),
       languageCode,
       voiceName: options.voiceName || 'Achernar',
-      speakingRate: options.speakingRate || 1.0,
-      pitch: options.pitch || 0,
-      prompt: options.prompt || '',
+      speakingRate,
+      pitch,
+      prompt,
     }),
   });
 
@@ -105,12 +116,16 @@ export async function fetchFurigana(text) {
     throw new Error('API URL not configured');
   }
 
+  if (!text || text.length > MAX_TEXT_LENGTH) {
+    throw new Error(`Text must be 1-${MAX_TEXT_LENGTH} characters`);
+  }
+
   const response = await fetch(`${TTS_API_URL}/furigana`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text: text.slice(0, MAX_TEXT_LENGTH) }),
   });
 
   if (!response.ok) {

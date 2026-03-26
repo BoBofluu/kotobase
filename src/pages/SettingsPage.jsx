@@ -18,14 +18,14 @@ function SettingsPage() {
       const raw = localStorage.getItem('jpLearningData_v2');
       const parsed = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed : (parsed?.words || []);
-    } catch { return []; }
+    } catch (e) { console.warn('Failed to parse words from localStorage:', e); return []; }
   };
 
   const getLocalCategories = () => {
     try {
       const raw = localStorage.getItem('jpCategories_v2');
       return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+    } catch (e) { console.warn('Failed to parse categories from localStorage:', e); return null; }
   };
 
   const setLocalWords = (words) => {
@@ -40,7 +40,7 @@ function SettingsPage() {
     Swal.fire({
       title: t('btn_switch_lang'),
       input: 'select',
-      inputOptions: { 'zh-TW': '繁體中文', 'ja': '日本語', 'ko': '한국어' },
+      inputOptions: { 'zh-TW': t('lang_zh_tw'), 'ja': t('lang_ja'), 'ko': t('lang_ko') },
       inputValue: i18n.language,
       showCancelButton: true,
       cancelButtonText: t('btn_cancel'),
@@ -104,9 +104,17 @@ function SettingsPage() {
     fileInputRef.current?.click();
   };
 
+  const MAX_IMPORT_SIZE = 5 * 1024 * 1024; // 5MB
+
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > MAX_IMPORT_SIZE) {
+      Swal.fire({ icon: 'error', title: t('msg_import_error'), text: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB, max 5MB)`, background: '#1a1a1a', color: '#fff' });
+      e.target.value = '';
+      return;
+    }
 
     try {
       const text = await file.text();
@@ -237,7 +245,7 @@ function SettingsPage() {
       <div onClick={changeLanguage} className={cardClass}>
         <div className="flex items-center gap-4">
           <Globe className="text-[#818cf8]" size={24} />
-          <div className="flex flex-col"><span className="text-[16px] font-bold text-white">{t('btn_switch_lang')}</span><span className="text-[14px] text-[#555]">{i18n.language === 'zh-TW' ? '繁體中文' : i18n.language === 'ja' ? '日本語' : '한국어'}</span></div>
+          <div className="flex flex-col"><span className="text-[16px] font-bold text-white">{t('btn_switch_lang')}</span><span className="text-[14px] text-[#555]">{t(`lang_${i18n.language === 'zh-TW' ? 'zh_tw' : i18n.language}`)}</span></div>
         </div>
         <div className="text-[#444] text-[14px]">➔</div>
       </div>

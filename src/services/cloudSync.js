@@ -1,10 +1,17 @@
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, auth } from './firebase';
+
+function verifyUid(uid) {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    throw new Error('UID mismatch: operation not allowed');
+  }
+}
 
 /**
  * 上傳資料到 Firestore
  */
 export async function uploadToCloud(uid, words, categories) {
+  verifyUid(uid);
   const ref = doc(db, 'users', uid);
   await setDoc(ref, {
     words,
@@ -17,6 +24,7 @@ export async function uploadToCloud(uid, words, categories) {
  * 從 Firestore 下載資料
  */
 export async function downloadFromCloud(uid) {
+  verifyUid(uid);
   const ref = doc(db, 'users', uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
@@ -87,12 +95,20 @@ export function exportData(words, categories) {
  * 讀取匯入的 v2 JSON 檔案
  * @returns {{ words: Array, categories: Object|null }}
  */
+const MAX_IMPORT_WORDS = 10000;
+
 export function parseImportFile(jsonString) {
   const data = JSON.parse(jsonString);
 
   if (data.version === 'v2' || (data.words && data.categories)) {
+    const words = data.words || [];
+    if (!Array.isArray(words)) throw new Error('Invalid format: words is not an array');
+    if (words.length > MAX_IMPORT_WORDS) throw new Error(`Too many entries: ${words.length} (max ${MAX_IMPORT_WORDS})`);
+    for (const w of words) {
+      if (!w.id || !w.created_at) throw new Error('Invalid word entry: missing id or created_at');
+    }
     return {
-      words: data.words || [],
+      words,
       categories: data.categories || null,
     };
   }

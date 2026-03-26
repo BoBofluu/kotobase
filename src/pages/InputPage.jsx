@@ -81,7 +81,7 @@ function InputPage({ onSave, categories, addCategory, updateCategory, deleteCate
         </AppField>
         <div className="min-h-[120px] mt-3">
           {showFurigana ? (
-            <div className="w-full bg-[#2c2c2c] border-2 border-[#3f3f3f] rounded-2xl p-5 text-[1.25rem] leading-[2.5] animate-in fade-in duration-300">
+            <div className="w-full bg-[#2c2c2c] border-2 border-[#3f3f3f] rounded-2xl p-5 text-[1.25rem] leading-[2.5]">
               {jpContent ? <FuriganaText text={jpContent} /> : <span className="text-[#444] italic text-sm">{t('msg_no_content')}</span>}
             </div>
           ) : (
