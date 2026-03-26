@@ -171,7 +171,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
 
     player.setLoading();
     try {
-      const cacheKey = getCacheKey(text, lang, voice);
+      const cacheKey = getCacheKey(text, lang, voice, ttsPrompt);
       let audioContent = await getCachedAudio(cacheKey);
 
       if (!audioContent) {
@@ -324,8 +324,8 @@ const handleDelete = () => {
                     {showEnPrompt && (
                       <div className="animate-in fade-in duration-200 flex flex-col gap-2">
                         <select
-                          value=""
-                          onChange={(e) => { if (e.target.value) handlePromptChange(e.target.value); e.target.value = ''; }}
+                          value={PROMPT_PRESETS.find(p => p.value === ttsPrompt)?.value || ''}
+                          onChange={(e) => { if (e.target.value) handlePromptChange(e.target.value); }}
                           className="appearance-none bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-bold cursor-pointer"
                         >
                           <option value="">{t('label_prompt_preset')}</option>

@@ -11,8 +11,8 @@ const MAX_CACHE_SIZE = 500; // 最多快取 500 筆
 /**
  * 產生快取 key（根據文字+語言+聲音）
  */
-export function getCacheKey(text, languageCode, voiceName) {
-  return `${text}|${languageCode}|${voiceName}`;
+export function getCacheKey(text, languageCode, voiceName, prompt = '') {
+  return `${text}|${languageCode}|${voiceName}|${prompt}`;
 }
 
 /**
