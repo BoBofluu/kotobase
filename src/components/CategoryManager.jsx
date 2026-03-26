@@ -22,6 +22,12 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
     }
   }, [safeCategories, selectedCatId]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleChangeCatColor = (id, color) => {
     if (!id) return;
     updateCategory(id, { customColor: color });

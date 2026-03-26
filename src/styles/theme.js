@@ -12,7 +12,7 @@ export const theme = {
     "w-full bg-[#242424] border border-[#3f3f3f] rounded-xl p-3",
     "text-[14px] text-white",
     "focus:outline-none focus:border-[#818cf8] focus:ring-2 focus:ring-[#818cf8]/20",
-    "transition-all shadow-inner",
+    "transition-colors shadow-inner",
     "placeholder:text-[#555] placeholder:font-normal placeholder:not-italic",
   ].join(" "),
 
