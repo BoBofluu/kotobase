@@ -45,12 +45,15 @@ function ListPage({ words, categories, onViewDetail }) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b3b3b3]" size={16} />
               <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('placeholder_search')} className="w-full bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl pl-10 pr-3 py-2.5 text-[14px] text-white focus:outline-none focus:border-[#818cf8]" />
             </div>
-            <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl px-3 text-[14px] text-white focus:outline-none">
-              <option value="newest">{t('sort_newest')}</option>
-              <option value="oldest">{t('sort_oldest')}</option>
-            </select>
+            <div className="relative">
+              <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="appearance-none bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl pl-3 pr-8 py-2.5 text-[14px] text-white focus:outline-none focus:border-[#818cf8] cursor-pointer">
+                <option value="newest">{t('sort_newest')}</option>
+                <option value="oldest">{t('sort_oldest')}</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#818cf8] pointer-events-none" />
+            </div>
             {/* 手機版展開/收合按鈕 */}
-            <button onClick={() => setMobileExpanded(!mobileExpanded)} className="md:hidden relative flex items-center justify-center w-10 bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl text-[#b3b3b3] hover:text-white transition-colors">
+            <button onClick={() => setMobileExpanded(!mobileExpanded)} className="md:hidden relative flex items-center justify-center w-10 bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl text-[#818cf8] hover:bg-[#818cf8]/10 hover:border-[#818cf8]/50 transition-colors">
               {mobileExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               {hasActiveFilters && !mobileExpanded && (
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#818cf8] rounded-full" />
