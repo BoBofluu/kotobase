@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Copy, Trash2, FileDown, Globe, MessageSquare } from 'lucide-react';
-import Swal from 'sweetalert2';
 import { clsx } from 'clsx';
+import { toast, confirmDelete } from '../utils/swal';
+import { STORAGE_KEYS } from '../utils/storage';
 import FuriganaText from '../components/FuriganaText';
 import CategoryManager from '../components/CategoryManager';
 import AudioPlayer from '../components/AudioPlayer';
@@ -58,10 +59,10 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
 
   // 日文 TTS 設定
   const [selectedVoice, setSelectedVoice] = useState(
-    () => localStorage.getItem('ttsVoice') || 'Achernar'
+    () => localStorage.getItem(STORAGE_KEYS.TTS_VOICE) || 'Achernar'
   );
   const [ttsPrompt, setTtsPrompt] = useState(
-    () => localStorage.getItem('ttsPrompt') || 'Read aloud in a warm, welcoming tone.'
+    () => localStorage.getItem(STORAGE_KEYS.TTS_PROMPT) || 'Read aloud in a warm, welcoming tone.'
   );
   const [showJpPrompt, setShowJpPrompt] = useState(false);
   const [showEnPrompt, setShowEnPrompt] = useState(false);
@@ -101,7 +102,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
     const newId = Date.now().toString();
     const newWord = { ...word, id: newId, title: (word.title || '') + t('msg_duplicate_title_suffix'), created_at: new Date().toISOString() };
     onAdd(newWord);
-    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: t('msg_duplicate_success'), showConfirmButton: false, timer: 1500 });
+    toast('success', t('msg_duplicate_success'));
     onViewDuplicate(newId);
   };
 
@@ -118,7 +119,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
   const handleCopyText = (text) => {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
-      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: t('msg_copied'), showConfirmButton: false, timer: 1500 });
+      toast('success', t('msg_copied'));
     });
   };
 
@@ -133,7 +134,7 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
     // 檢查是否有實際內容（排除空白、特殊符號）
     const hasContent = text && /[\p{L}\p{N}]/u.test(text);
     if (!hasContent) {
-      Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: t('msg_tts_no_content'), showConfirmButton: false, timer: 2000 });
+      toast('warning', t('msg_tts_no_content'), 2000);
       return;
     }
 
@@ -163,29 +164,27 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
       console.error('Gemini TTS failed:', error);
       player.stop();
       if (error.status === 403) {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: t('msg_tts_not_authorized'), showConfirmButton: false, timer: 3000 });
+        toast('error', t('msg_tts_not_authorized'), 3000);
       } else if (error.status === 429) {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: t('msg_rate_limit'), showConfirmButton: false, timer: 2000 });
+        toast('warning', t('msg_rate_limit'), 2000);
       } else {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: t('msg_tts_error'), showConfirmButton: false, timer: 2000 });
+        toast('error', t('msg_tts_error'), 2000);
       }
     }
   };
 
   const handleVoiceChange = (voice) => {
     setSelectedVoice(voice);
-    localStorage.setItem('ttsVoice', voice);
+    localStorage.setItem(STORAGE_KEYS.TTS_VOICE, voice);
   };
 
   const handlePromptChange = (value) => {
     setTtsPrompt(value);
-    localStorage.setItem('ttsPrompt', value);
+    localStorage.setItem(STORAGE_KEYS.TTS_PROMPT, value);
   };
 
 const handleDelete = () => {
-    Swal.fire({
-      title: t('msg_delete_item_confirm'), icon: 'warning', showCancelButton: true, confirmButtonColor: '#ff6b6b', cancelButtonColor: '#3f3f3f', confirmButtonText: t('btn_delete'), cancelButtonText: t('btn_cancel'), background: '#1a1a1a', color: '#fff',
-    }).then((result) => {
+    confirmDelete(t, t('msg_delete_item_confirm')).then((result) => {
       if (result.isConfirmed) { onDelete(word.id); onBack(); }
     });
   };
@@ -239,9 +238,15 @@ const handleDelete = () => {
                 <AppField label={t('label_category')}>
                     <AppButton text={t('btn_manage_category')} action={() => setIsCatManagerOpen(true)} />
                 </AppField>
-                <AppSelect value={editedWord.category} onChange={(e) => handleChange('category', e.target.value)} className="mt-3">
-                    {Object.entries(categories || {}).map(([id, cat]) => (<option key={id} value={id}>{cat.label}</option>))}
-                </AppSelect>
+                {Object.keys(categories || {}).length > 0 ? (
+                  <AppSelect value={editedWord.category} onChange={(e) => handleChange('category', e.target.value)} className="mt-3">
+                    {Object.entries(categories).map(([id, cat]) => (<option key={id} value={id}>{cat.label}</option>))}
+                  </AppSelect>
+                ) : (
+                  <button onClick={() => setIsCatManagerOpen(true)} className="mt-3 w-full py-3 border border-dashed border-[#818cf8]/50 rounded-xl text-[14px] text-[#818cf8] font-bold hover:bg-[#818cf8]/10 transition-colors">
+                    {t('msg_no_category')}
+                  </button>
+                )}
             </div>
 
             <div className="flex-1 flex flex-col">

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Plus, Trash2, Palette } from 'lucide-react';
-import Swal from 'sweetalert2';
 import { clsx } from 'clsx';
+import { alert, confirmDelete } from '../utils/swal';
+import useEscClose from '../hooks/useEscClose';
 
 const PRESET_COLORS = ['#f87171', '#fb923c', '#fde047', '#4ade80', '#2dd4bf', '#818cf8', '#6366f1', '#c084fc', '#f472b6', '#a8a29e'];
 
@@ -22,11 +23,7 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
     }
   }, [safeCategories, selectedCatId]);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  useEscClose(onClose);
 
   const handleChangeCatColor = (id, color) => {
     if (!id) return;
@@ -35,16 +32,14 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
   };
 
   const handleAddCategory = () => {
-    if (!newCatName.trim()) { Swal.fire({ icon: 'warning', title: t('msg_input_required'), text: t('msg_cat_name_empty'), timer: 1500 }); return; }
+    if (!newCatName.trim()) { alert('warning', t('msg_input_required'), t('msg_cat_name_empty')); return; }
     const newId = `cat_${Date.now()}`;
     addCategory(newId, newCatName.trim(), customColor);
     setNewCatName(''); setSelectedCatId(newId);
   };
 
   const handleDeleteCategory = (id) => {
-    if (Object.keys(safeCategories).length <= 1) { Swal.fire({ icon: 'warning', title: t('msg_cannot_delete'), text: t('msg_keep_one_cat') }); return; }
-    Swal.fire({ title: t('msg_delete_confirm'), icon: 'warning', showCancelButton: true, confirmButtonText: t('btn_delete'), background: '#1a1a1a', color: '#fff',
-    }).then((result) => {
+    confirmDelete(t).then((result) => {
       if (result.isConfirmed) {
         deleteCategory(id);
         const remainingKeys = Object.keys(safeCategories).filter(cid => cid !== id);
@@ -54,7 +49,7 @@ function CategoryManager({ categories, addCategory, updateCategory, deleteCatego
   };
 
   const handleAddSubcat = () => {
-    if (!newSubcatName.trim()) { Swal.fire({ icon: 'warning', title: t('msg_input_required'), text: t('msg_subcat_name_empty'), timer: 1500 }); return; }
+    if (!newSubcatName.trim()) { alert('warning', t('msg_input_required'), t('msg_subcat_name_empty')); return; }
     if (!selectedCatId) return;
     const currentCat = safeCategories[selectedCatId];
     const newSubcat = { id: `sub_${Date.now()}`, label: newSubcatName.trim() };

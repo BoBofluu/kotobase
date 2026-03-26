@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Globe, Trash2, ExternalLink, LogIn, LogOut, User, Download, Upload, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { Globe, Trash2, ExternalLink, LogIn, LogOut, User, Download, Upload, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadToCloud, downloadFromCloud, mergeWords, mergeCategories, exportData, parseImportFile } from '../services/cloudSync';
+import { toast, alert, confirmDelete, chooseMode } from '../utils/swal';
+import { STORAGE_KEYS, getLocalWords, setLocalWords, getLocalCategories, setLocalCategories } from '../utils/storage';
 
 function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -11,30 +13,6 @@ function SettingsPage() {
   const [signingIn, setSigningIn] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const fileInputRef = useRef(null);
-
-  // 讀取 localStorage 資料
-  const getLocalWords = () => {
-    try {
-      const raw = localStorage.getItem('jpLearningData_v2');
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : (parsed?.words || []);
-    } catch (e) { console.warn('Failed to parse words from localStorage:', e); return []; }
-  };
-
-  const getLocalCategories = () => {
-    try {
-      const raw = localStorage.getItem('jpCategories_v2');
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) { console.warn('Failed to parse categories from localStorage:', e); return null; }
-  };
-
-  const setLocalWords = (words) => {
-    localStorage.setItem('jpLearningData_v2', JSON.stringify(words));
-  };
-
-  const setLocalCategories = (cats) => {
-    if (cats) localStorage.setItem('jpCategories_v2', JSON.stringify(cats));
-  };
 
   const changeLanguage = () => {
     Swal.fire({
@@ -50,16 +28,14 @@ function SettingsPage() {
     }).then((result) => {
       if (result.isConfirmed) {
         i18n.changeLanguage(result.value);
-        localStorage.setItem('appLanguage', result.value);
+        localStorage.setItem(STORAGE_KEYS.LANGUAGE, result.value);
       }
     });
   };
 
   const handleClearData = () => {
-    Swal.fire({
-      title: t('msg_delete_confirm'), text: t('msg_reset_cat_text'), icon: 'warning', showCancelButton: true, confirmButtonColor: '#ff6b6b', cancelButtonColor: '#3f3f3f', confirmButtonText: t('btn_delete'), cancelButtonText: t('btn_cancel'), background: '#1a1a1a', color: '#fff',
-    }).then((result) => {
-      if (result.isConfirmed) { localStorage.removeItem('jpLearningData_v2'); window.location.reload(); }
+    confirmDelete(t, t('msg_delete_confirm'), t('msg_reset_cat_text')).then((result) => {
+      if (result.isConfirmed) { localStorage.removeItem(STORAGE_KEYS.WORDS); window.location.reload(); }
     });
   };
 
@@ -67,11 +43,11 @@ function SettingsPage() {
     setSigningIn(true);
     try {
       await signIn();
-      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: t('msg_sign_in_success'), showConfirmButton: false, timer: 1500 });
+      toast('success', t('msg_sign_in_success'));
     } catch (error) {
       console.error('Sign in error:', error);
       if (error.code !== 'auth/popup-closed-by-user') {
-        Swal.fire({ icon: 'error', title: t('msg_sign_in_error'), background: '#1a1a1a', color: '#fff' });
+        alert('error', t('msg_sign_in_error'));
       }
     } finally {
       setSigningIn(false);
@@ -81,7 +57,7 @@ function SettingsPage() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: t('msg_sign_out_success'), showConfirmButton: false, timer: 1500 });
+      toast('info', t('msg_sign_out_success'));
     } catch (error) {
       console.error('Sign out error:', error);
     }
@@ -92,11 +68,11 @@ function SettingsPage() {
     const words = getLocalWords();
     const categories = getLocalCategories();
     if (words.length === 0) {
-      Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: t('msg_no_data'), showConfirmButton: false, timer: 1500 });
+      toast('info', t('msg_no_data'));
       return;
     }
     exportData(words, categories);
-    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: t('msg_export_success'), showConfirmButton: false, timer: 1500 });
+    toast('success', t('msg_export_success'));
   };
 
   // ===== 匯入 =====
@@ -111,7 +87,7 @@ function SettingsPage() {
     if (!file) return;
 
     if (file.size > MAX_IMPORT_SIZE) {
-      Swal.fire({ icon: 'error', title: t('msg_import_error'), text: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB, max 5MB)`, background: '#1a1a1a', color: '#fff' });
+      alert('error', t('msg_import_error'), `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB, max 5MB)`);
       e.target.value = '';
       return;
     }
@@ -123,45 +99,33 @@ function SettingsPage() {
       const localWords = getLocalWords();
       const localCats = getLocalCategories();
 
-      const result = await Swal.fire({
+      const result = await chooseMode(t, {
         title: t('msg_import_title'),
         html: `${t('msg_import_found', { count: importedWords.length })}<br/>${t('msg_import_mode')}`,
-        icon: 'question',
-        showCancelButton: true,
-        showDenyButton: true,
-        confirmButtonText: t('btn_import_merge'),
-        denyButtonText: t('btn_import_replace'),
-        cancelButtonText: t('btn_cancel'),
-        background: '#1a1a1a',
-        color: '#fff',
-        confirmButtonColor: '#818cf8',
-        denyButtonColor: '#f59e0b',
+        confirmText: t('btn_import_merge'),
+        denyText: t('btn_import_replace'),
       });
 
       if (result.isConfirmed) {
-        // 合併模式
         const merged = mergeWords(localWords, importedWords);
         const mergedCats = mergeCategories(localCats, importedCats);
         setLocalWords(merged);
         setLocalCategories(mergedCats);
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: t('msg_import_merge_success', { count: merged.length }), showConfirmButton: false, timer: 2000 });
+        toast('success', t('msg_import_merge_success', { count: merged.length }), 2000);
       } else if (result.isDenied) {
-        // 取代模式
         setLocalWords(importedWords);
         if (importedCats) setLocalCategories(importedCats);
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: t('msg_import_replace_success', { count: importedWords.length }), showConfirmButton: false, timer: 2000 });
+        toast('success', t('msg_import_replace_success', { count: importedWords.length }), 2000);
       }
 
-      // 重新載入頁面以更新 state
       if (result.isConfirmed || result.isDenied) {
         setTimeout(() => window.location.reload(), 500);
       }
     } catch (error) {
       console.error('Import error:', error);
-      Swal.fire({ icon: 'error', title: t('msg_import_error'), text: error.message, background: '#1a1a1a', color: '#fff' });
+      alert('error', t('msg_import_error'), error.message);
     }
 
-    // 清空 input 以便重複選同一檔案
     e.target.value = '';
   };
 
@@ -173,10 +137,10 @@ function SettingsPage() {
       const words = getLocalWords();
       const categories = getLocalCategories();
       await uploadToCloud(user.uid, words, categories);
-      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: t('msg_sync_upload_success'), showConfirmButton: false, timer: 1500 });
+      toast('success', t('msg_sync_upload_success'));
     } catch (error) {
       console.error('Sync upload error:', error);
-      Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: t('msg_sync_error'), showConfirmButton: false, timer: 2000 });
+      toast('error', t('msg_sync_error'), 2000);
     } finally {
       setSyncing(false);
     }
@@ -188,7 +152,7 @@ function SettingsPage() {
     try {
       const cloudData = await downloadFromCloud(user.uid);
       if (!cloudData || (!cloudData.words?.length)) {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: t('msg_sync_no_cloud_data'), showConfirmButton: false, timer: 1500 });
+        toast('info', t('msg_sync_no_cloud_data'));
         setSyncing(false);
         return;
       }
@@ -196,19 +160,11 @@ function SettingsPage() {
       const localWords = getLocalWords();
       const localCats = getLocalCategories();
 
-      const result = await Swal.fire({
+      const result = await chooseMode(t, {
         title: t('msg_sync_download_title'),
         html: `${t('msg_sync_cloud_count', { count: cloudData.words.length })}<br/>${t('msg_sync_local_count', { count: localWords.length })}<br/><br/>${t('msg_import_mode')}`,
-        icon: 'question',
-        showCancelButton: true,
-        showDenyButton: true,
-        confirmButtonText: t('btn_import_merge'),
-        denyButtonText: t('btn_sync_replace_local'),
-        cancelButtonText: t('btn_cancel'),
-        background: '#1a1a1a',
-        color: '#fff',
-        confirmButtonColor: '#818cf8',
-        denyButtonColor: '#f59e0b',
+        confirmText: t('btn_import_merge'),
+        denyText: t('btn_sync_replace_local'),
       });
 
       if (result.isConfirmed) {
@@ -216,11 +172,11 @@ function SettingsPage() {
         const mergedCats = mergeCategories(localCats, cloudData.categories);
         setLocalWords(merged);
         setLocalCategories(mergedCats);
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: t('msg_sync_merge_success', { count: merged.length }), showConfirmButton: false, timer: 2000 });
+        toast('success', t('msg_sync_merge_success', { count: merged.length }), 2000);
       } else if (result.isDenied) {
         setLocalWords(cloudData.words);
         if (cloudData.categories) setLocalCategories(cloudData.categories);
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: t('msg_sync_replace_success'), showConfirmButton: false, timer: 2000 });
+        toast('success', t('msg_sync_replace_success'), 2000);
       }
 
       if (result.isConfirmed || result.isDenied) {
@@ -228,7 +184,7 @@ function SettingsPage() {
       }
     } catch (error) {
       console.error('Sync download error:', error);
-      Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: t('msg_sync_error'), showConfirmButton: false, timer: 2000 });
+      toast('error', t('msg_sync_error'), 2000);
     } finally {
       setSyncing(false);
     }
@@ -238,7 +194,6 @@ function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* 隱藏的檔案選擇 input */}
       <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} />
 
       {/* 語言切換 */}

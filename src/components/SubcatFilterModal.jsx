@@ -1,17 +1,13 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { theme } from '../styles/theme';
+import useEscClose from '../hooks/useEscClose';
 
 function SubcatFilterModal({ categories, selectedSubcats, onToggle, onClear, onClose }) {
   const { t } = useTranslation();
-
-  useEffect(() => {
-    const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  useEscClose(onClose);
 
   return (
     <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">

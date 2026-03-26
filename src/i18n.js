@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next';
 import zhTW from './locales/zh-TW.json';
 import ja from './locales/ja.json';
 import ko from './locales/ko.json';
+import { STORAGE_KEYS } from './utils/storage';
 
 const resources = {
   'zh-TW': { translation: zhTW },
@@ -14,7 +15,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: localStorage.getItem('appLanguage') || 'zh-TW',
+    lng: localStorage.getItem(STORAGE_KEYS.LANGUAGE) || 'zh-TW',
     fallbackLng: 'zh-TW',
     interpolation: {
       escapeValue: false,

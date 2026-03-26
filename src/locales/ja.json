@@ -46,6 +46,7 @@
     "msg_no_data": "データが見つかりません",
     "msg_save_no_content": "タイトルか內容を入力してください！",
     "msg_no_subcat": "(サブカテゴリなし)",
+    "msg_no_category": "カテゴリがありません。先にカテゴリを作成してください",
     "msg_no_results": "結果が見つかりません",
     "btn_tts_en_us": "読み上げ(US)",
     "btn_tts_en_gb": "読み上げ(UK)",

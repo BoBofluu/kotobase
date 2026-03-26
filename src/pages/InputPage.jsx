@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import Swal from 'sweetalert2';
 import CategoryManager from '../components/CategoryManager';
+import { toast, alert } from '../utils/swal';
 import FuriganaText from '../components/FuriganaText';
 import { AppField, AppButton, AppPill, AppInput, AppTextArea, AppSelect } from '../components/UI';
 
@@ -31,13 +31,18 @@ function InputPage({ onSave, categories, addCategory, updateCategory, deleteCate
   };
 
   const handleSave = () => {
+    if (!category || Object.keys(categories || {}).length === 0) {
+      alert('warning', t('msg_no_category'));
+      setIsCatManagerOpen(true);
+      return;
+    }
     if (!title.trim() && !jpContent.trim() && !enContent.trim()) {
-      Swal.fire({ icon: 'warning', title: t('msg_save_no_content') });
+      alert('warning', t('msg_save_no_content'));
       return;
     }
     onSave({ category, subcategories: Array.from(selectedSubcats), title: title.trim(), en_content: enContent.trim(), jp_content: jpContent.trim(), note: note.trim() });
-    setTitle(''); setEnContent(''); setJpContent(''); setNote(''); setSelectedSubcats(new Set()); setShowFurigana(false); 
-    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: t('msg_save_success'), showConfirmButton: false, timer: 1500 });
+    setTitle(''); setEnContent(''); setJpContent(''); setNote(''); setSelectedSubcats(new Set()); setShowFurigana(false);
+    toast('success', t('msg_save_success'));
   };
 
   const currentCat = categories?.[category] || {};
@@ -49,9 +54,15 @@ function InputPage({ onSave, categories, addCategory, updateCategory, deleteCate
           <AppField label={t('label_category')}>
             <AppButton text={t('btn_manage_category')} action={() => setIsCatManagerOpen(true)} />
           </AppField>
-          <AppSelect value={category} onChange={(e) => setCategory(e.target.value)} className="mt-3">
-            {Object.entries(categories || {}).map(([id, cat]) => (<option key={id} value={id}>{cat.label}</option>))}
-          </AppSelect>
+          {Object.keys(categories || {}).length > 0 ? (
+            <AppSelect value={category} onChange={(e) => setCategory(e.target.value)} className="mt-3">
+              {Object.entries(categories).map(([id, cat]) => (<option key={id} value={id}>{cat.label}</option>))}
+            </AppSelect>
+          ) : (
+            <button onClick={() => setIsCatManagerOpen(true)} className="mt-3 w-full py-3 border border-dashed border-[#818cf8]/50 rounded-xl text-[14px] text-[#818cf8] font-bold hover:bg-[#818cf8]/10 transition-colors">
+              {t('msg_no_category')}
+            </button>
+          )}
         </div>
         <div className="flex-1 flex flex-col">
           <AppField label={t('label_subcategory')} />

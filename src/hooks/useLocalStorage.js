@@ -5,7 +5,10 @@ function useLocalStorage(key, initialValue) {
     if (typeof window === 'undefined') return initialValue;
     try {
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      if (item) return JSON.parse(item);
+      // 首次使用：將 initialValue 寫入 localStorage，確保同步
+      window.localStorage.setItem(key, JSON.stringify(initialValue));
+      return initialValue;
     } catch (error) {
       console.error("useLocalStorage parse error:", error);
       return initialValue;

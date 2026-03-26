@@ -1,8 +1,9 @@
 import useLocalStorage from './useLocalStorage';
 import categoryData from '../locales/categories.json';
+import { STORAGE_KEYS } from '../utils/storage';
 
 function useCategories() {
-  const [categories, setCategories] = useLocalStorage('jpCategories_v2', categoryData);
+  const [categories, setCategories] = useLocalStorage(STORAGE_KEYS.CATEGORIES, categoryData);
 
   const addCategory = (id, label, color) => {
     setCategories(prev => ({

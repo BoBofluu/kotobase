@@ -1,7 +1,8 @@
 import useLocalStorage from './useLocalStorage';
+import { STORAGE_KEYS } from '../utils/storage';
 
 function useWords() {
-  const [storedValue, setStoredValue] = useLocalStorage('jpLearningData_v2', []);
+  const [storedValue, setStoredValue] = useLocalStorage(STORAGE_KEYS.WORDS, []);
 
   // 確保 words 永遠是陣列，相容物件格式與異常資料
   const words = Array.isArray(storedValue) 

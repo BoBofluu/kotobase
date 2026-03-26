@@ -46,6 +46,7 @@
     "msg_no_data": "找不到資料",
     "msg_save_no_content": "請至少輸入一種內容喔！",
     "msg_no_subcat": "(此分類無子分類)",
+    "msg_no_category": "尚未建立分類，請先新增分類",
     "msg_no_results": "無符合的搜尋結果",
     "btn_tts_en_us": "朗讀(美式)",
     "btn_tts_en_gb": "朗讀(英式)",
