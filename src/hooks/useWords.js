@@ -12,8 +12,8 @@ function useWords() {
   const addWord = (word) => {
     const newWord = {
       ...word,
-      id: Date.now().toString(),
-      created_at: new Date().toISOString(),
+      id: word.id || Date.now().toString(),
+      created_at: word.created_at || new Date().toISOString(),
     };
     setStoredValue(prev => {
       const currentWords = Array.isArray(prev) ? prev : (prev?.words || []);
