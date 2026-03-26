@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { fetchFurigana } from '../services/ttsApi';
 
+// 記憶體內快取：同一段文字不重複呼叫 API
+const furiganaCache = new Map();
+
 function FuriganaText({ text, className }) {
   const [tokens, setTokens] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -11,10 +14,18 @@ function FuriganaText({ text, className }) {
 
     const fetchData = async () => {
       if (!text) { setTokens([]); return; }
+
+      // 命中快取則直接使用
+      if (furiganaCache.has(text)) {
+        setTokens(furiganaCache.get(text));
+        return;
+      }
+
       setIsLoading(true);
 
       try {
         const parsed = await fetchFurigana(text);
+        furiganaCache.set(text, parsed);
         if (isMounted) setTokens(parsed);
       } catch (error) {
         console.error("Furigana parse error:", error);
