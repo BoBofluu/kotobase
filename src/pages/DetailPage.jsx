@@ -38,11 +38,33 @@ const GEMINI_VOICES = [
   { name: 'Zubenelgenubi', gender: 'MALE' },
 ];
 
-// 英文固定聲音（label 用 i18n key）
+// 英文固定聲音
 const EN_VOICES = [
-  { key: 'en-us', labelKey: 'voice_us', voice: 'Achernar', lang: 'en-us' },
-  { key: 'en-gb', labelKey: 'voice_gb', voice: 'Fenrir', lang: 'en-gb' },
-  { key: 'en-au', labelKey: 'voice_au', voice: 'Aoede', lang: 'en-au' },
+  { key: 'en-us', labelKey: 'btn_tts_en_us', voice: 'Achernar', lang: 'en-us' },
+  { key: 'en-gb', labelKey: 'btn_tts_en_gb', voice: 'Fenrir', lang: 'en-gb' },
+  { key: 'en-au', labelKey: 'btn_tts_en_au', voice: 'Aoede', lang: 'en-au' },
+];
+
+// TTS Prompt 預設風格
+const PROMPT_PRESETS = [
+  { id: 'natural', label: '🎙️ 自然・穩定',
+    value: '自然で安定した話し方で、呼吸音があり、少し抑揚をつけて読んでください。' },
+  { id: 'teacher', label: '📖 教師朗讀',
+    value: '教師が教科書を読むように、はっきりと正確な発音で読んでください。試験のリスニング練習に適したスタイルで。' },
+  { id: 'anime-girl', label: '✨ 動漫女角・元氣',
+    value: 'アニメの元気な女の子キャラクターのように、明るく活発に、感情豊かに読んでください。' },
+  { id: 'chuuni-boy', label: '⚔️ 中二男角',
+    value: '中二病の男キャラクターのように、大げさで芝居がかった口調で、ドラマチックに読んでください。' },
+  { id: 'host-idol', label: '💎 牛郎・偶像磁性',
+    value: 'ホストやアイドルのように、色気があり磁力のある声で、甘くささやくように読んでください。' },
+  { id: 'news', label: '📺 NHKニュース',
+    value: 'NHKのニュースアナウンサーのように、落ち着いた正確な標準語で、丁寧に読んでください。' },
+  { id: 'grandma', label: '👵 優しいおばあちゃん',
+    value: 'おばあちゃんが孫に話しかけるように、温かくゆっくりと優しい口調で読んでください。' },
+  { id: 'samurai', label: '⚔️ 武士・時代劇',
+    value: '時代劇の武士のように、威厳があり力強い口調で読んでください。' },
+  { id: 'whisper', label: '🌙 ASMR囁き',
+    value: 'ASMRのように、そっと囁くような小さな声で、リラックスできるように読んでください。' },
 ];
 
 function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onViewDuplicate, categories, addCategory, updateCategory, deleteCategory }) {
@@ -204,7 +226,6 @@ const handleDelete = () => {
         onResume={player.resume}
         onRestart={player.restart}
         onStop={() => { player.stop(); setActivePlayerKey(null); }}
-        isHD={true}
         label={label}
       />
     );
@@ -289,7 +310,7 @@ const handleDelete = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       {EN_VOICES.map((ev) => (
                         <React.Fragment key={ev.key}>
-                          {renderPlayer(editedWord.en_content, ev.lang, ev.key, `${t(ev.labelKey)} (${ev.voice})`, ev.voice)}
+                          {renderPlayer(editedWord.en_content, ev.lang, ev.key, t(ev.labelKey), ev.voice)}
                         </React.Fragment>
                       ))}
                       <button
@@ -301,7 +322,15 @@ const handleDelete = () => {
                       </button>
                     </div>
                     {showEnPrompt && (
-                      <div className="animate-in fade-in duration-200">
+                      <div className="animate-in fade-in duration-200 flex flex-col gap-2">
+                        <select
+                          value=""
+                          onChange={(e) => { if (e.target.value) handlePromptChange(e.target.value); e.target.value = ''; }}
+                          className="appearance-none bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-bold cursor-pointer"
+                        >
+                          <option value="">{t('label_prompt_preset')}</option>
+                          {PROMPT_PRESETS.map(p => (<option key={p.id} value={p.value}>{p.label}</option>))}
+                        </select>
                         <textarea
                           value={ttsPrompt}
                           onChange={(e) => handlePromptChange(e.target.value)}
@@ -358,7 +387,15 @@ const handleDelete = () => {
                 </div>
 
                 {showJpPrompt && (
-                  <div className="animate-in fade-in duration-200">
+                  <div className="animate-in fade-in duration-200 flex flex-col gap-2">
+                    <select
+                      value=""
+                      onChange={(e) => { if (e.target.value) handlePromptChange(e.target.value); e.target.value = ''; }}
+                      className="appearance-none bg-[#2c2c2c] text-[13px] text-[#b3b3b3] border border-[#3f3f3f] px-3 py-2 rounded-xl focus:outline-none focus:border-[#818cf8] font-bold cursor-pointer"
+                    >
+                      <option value="">{t('label_prompt_preset')}</option>
+                      {PROMPT_PRESETS.map(p => (<option key={p.id} value={p.value}>{p.label}</option>))}
+                    </select>
                     <textarea
                       value={ttsPrompt}
                       onChange={(e) => handlePromptChange(e.target.value)}

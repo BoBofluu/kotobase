@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Play, Pause, Square, RotateCcw, Loader2 } from 'lucide-react';
 
-function AudioPlayer({ status, onPlay, onPause, onResume, onRestart, onStop, isHD, label }) {
+function AudioPlayer({ status, onPlay, onPause, onResume, onRestart, onStop, label }) {
   const { t } = useTranslation();
   const btnBase = "flex items-center gap-1.5 px-3 py-1 rounded-xl text-[13px] font-bold transition-all active:scale-[0.95] focus:outline-none";
   const btnMain = `${btnBase} bg-[#818cf8]/20 text-[#818cf8] border border-[#818cf8]/30 hover:bg-[#818cf8] hover:text-white`;
@@ -57,7 +57,7 @@ function AudioPlayer({ status, onPlay, onPause, onResume, onRestart, onStop, isH
   return (
     <button onClick={onPlay} className={btnMain}>
       <Play size={12} fill="currentColor" />
-      <span>{label}{isHD ? ' HD' : ''}</span>
+      <span>{label}</span>
     </button>
   );
 }
