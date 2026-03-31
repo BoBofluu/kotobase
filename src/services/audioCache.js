@@ -122,6 +122,7 @@ export async function setWordAudio(wordId, audioContent, meta = {}) {
       voice: meta.voice || '',
       prompt: meta.prompt || '',
       type: meta.type || 'gemini',  // 'gemini' | 'standard'
+      label: meta.label || '',
       createdAt: Date.now(),
     });
   } catch (error) {

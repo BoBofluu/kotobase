@@ -168,6 +168,14 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
     });
   };
 
+  // 取得音訊來源標籤
+  const getAudioLabel = (type, voice) => {
+    if (type === 'standard') {
+      return voice === 'ja-JP-Wavenet-C' ? t('label_audio_std_male') : t('label_audio_std_female');
+    }
+    return t('label_audio_gemini');
+  };
+
   // ===== 日文 Gemini TTS =====
   const handleJpSpeak = async (voiceName, type = 'gemini') => {
     const text = editedWord.jp_content;
@@ -203,8 +211,9 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
       }
 
       // 綁定到此單字
-      await setWordAudio(wordId, audioContent, { voice: voiceName, prompt: type === 'gemini' ? ttsPrompt : '', type });
-      setWordAudioData({ audioContent, voice: voiceName, type });
+      const label = getAudioLabel(type, voiceName);
+      await setWordAudio(wordId, audioContent, { voice: voiceName, prompt: type === 'gemini' ? ttsPrompt : '', type, label });
+      setWordAudioData({ audioContent, voice: voiceName, type, label });
 
       await player.loadAndPlay(audioContent);
     } catch (error) {
@@ -522,6 +531,10 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
                 {/* 進度條播放器（有音訊時顯示） */}
                 {(hasAudio || jpPlayerStatus !== 'idle') && (
                   <div className="flex flex-col gap-2.5 pt-3 border-t border-[#3f3f3f]">
+                    {/* 音訊來源標籤 */}
+                    {wordAudioData?.label && (
+                      <span className="text-[12px] text-[#888] font-medium">▶ {wordAudioData.label}</span>
+                    )}
                     {/* 控制按鈕列 */}
                     <div className="flex items-center gap-2">
                       {jpPlayerStatus === 'playing' ? (
@@ -545,6 +558,10 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
                           <span>{t('btn_stop')}</span>
                         </button>
                       )}
+                      <button onClick={handleDownloadAudio} className="h-10 px-4 flex items-center justify-center gap-1.5 rounded-xl bg-[#2c2c2c] text-[#b3b3b3] text-[13px] border border-[#3f3f3f] hover:bg-[#3f3f3f] transition-colors ml-auto" title={t('btn_tts_download')}>
+                        <Download size={13} />
+                        <span>{t('btn_tts_download')}</span>
+                      </button>
                     </div>
 
                     {/* 進度條 + 時間（同一行） */}
@@ -568,11 +585,6 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
                       </span>
                     </div>
 
-                    {/* 下載按鈕 */}
-                    <button onClick={handleDownloadAudio} className="flex items-center gap-1.5 text-[12px] text-[#888] hover:text-white transition-colors self-start">
-                      <Download size={13} />
-                      <span>{t('btn_tts_download')}</span>
-                    </button>
                   </div>
                 )}
               </div>

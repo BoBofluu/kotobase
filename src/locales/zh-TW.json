@@ -128,5 +128,8 @@
     "label_prompt_preset": "⬇ 選擇預設風格...",
     "placeholder_prompt": "例如：Read aloud in a warm, welcoming tone.",
     "gender_female": "女",
-    "gender_male": "男"
+    "gender_male": "男",
+    "label_audio_gemini": "自然音声",
+    "label_audio_std_female": "標準音声 - 女",
+    "label_audio_std_male": "標準音声 - 男"
 }
