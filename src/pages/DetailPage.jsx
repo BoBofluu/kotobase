@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Copy, Trash2, FileDown, Globe, Play, Pause, RotateCcw, Square, Loader2, MoreHorizontal, Download } from 'lucide-react';
+import { ArrowLeft, Copy, Trash2, FileDown, Globe, Play, Pause, RotateCcw, Square, Loader2, Download } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast, confirmDelete } from '../utils/swal';
 import { STORAGE_KEYS } from '../utils/storage';
@@ -102,7 +102,6 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
   // 單字綁定語音（持久化）
   const [wordAudioData, setWordAudioData] = useState(null);
   const [jpGenerating, setJpGenerating] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   // 保存日文 textarea 高度
   const jpTextareaHeightRef = useRef(null);
@@ -522,66 +521,58 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
 
                 {/* 進度條播放器（有音訊時顯示） */}
                 {(hasAudio || jpPlayerStatus !== 'idle') && (
-                  <div className="flex flex-col gap-2 pt-3 border-t border-[#3f3f3f]">
+                  <div className="flex flex-col gap-2.5 pt-3 border-t border-[#3f3f3f]">
                     {/* 控制按鈕列 */}
                     <div className="flex items-center gap-2">
                       {jpPlayerStatus === 'playing' ? (
-                        <button onClick={player.pause} className="w-8 h-8 flex items-center justify-center rounded-full bg-[#818cf8] text-white hover:bg-[#6366f1] transition-colors">
-                          <Pause size={14} fill="currentColor" />
+                        <button onClick={player.pause} className="h-10 px-5 flex items-center justify-center gap-1.5 rounded-xl bg-[#818cf8] text-white text-[13px] font-medium hover:bg-[#6366f1] transition-colors">
+                          <Pause size={15} fill="currentColor" />
+                          <span>{t('btn_pause')}</span>
                         </button>
                       ) : (
-                        <button onClick={jpPlayerStatus === 'paused' ? player.resume : handlePlaySaved} className="w-8 h-8 flex items-center justify-center rounded-full bg-[#818cf8] text-white hover:bg-[#6366f1] transition-colors">
-                          <Play size={14} fill="currentColor" />
+                        <button onClick={jpPlayerStatus === 'paused' ? player.resume : handlePlaySaved} className="h-10 px-5 flex items-center justify-center gap-1.5 rounded-xl bg-[#818cf8] text-white text-[13px] font-medium hover:bg-[#6366f1] transition-colors">
+                          <Play size={15} fill="currentColor" />
+                          <span>{jpPlayerStatus === 'paused' ? t('btn_resume') : t('btn_restart')}</span>
                         </button>
                       )}
-                      <button onClick={player.restart} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#2c2c2c] text-[#b3b3b3] border border-[#3f3f3f] hover:bg-[#3f3f3f] transition-colors" title={t('btn_restart')}>
-                        <RotateCcw size={12} />
+                      <button onClick={player.restart} className="h-10 px-4 flex items-center justify-center gap-1.5 rounded-xl bg-[#2c2c2c] text-[#b3b3b3] text-[13px] border border-[#3f3f3f] hover:bg-[#3f3f3f] transition-colors" title={t('btn_restart')}>
+                        <RotateCcw size={13} />
+                        <span>{t('btn_restart')}</span>
                       </button>
                       {(jpPlayerStatus === 'playing' || jpPlayerStatus === 'paused') && (
-                        <button onClick={() => { player.stop(); setActivePlayerKey(null); }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#ff6b6b]/10 text-[#ff6b6b] border border-[#ff6b6b]/20 hover:bg-[#ff6b6b] hover:text-white transition-colors" title={t('btn_stop')}>
-                          <Square size={10} fill="currentColor" />
+                        <button onClick={() => { player.stop(); setActivePlayerKey(null); }} className="h-10 px-4 flex items-center justify-center gap-1.5 rounded-xl bg-[#ff6b6b]/10 text-[#ff6b6b] text-[13px] border border-[#ff6b6b]/20 hover:bg-[#ff6b6b] hover:text-white transition-colors" title={t('btn_stop')}>
+                          <Square size={11} fill="currentColor" />
+                          <span>{t('btn_stop')}</span>
                         </button>
                       )}
+                    </div>
 
-                      {/* 時間 */}
-                      <span className="text-[11px] text-[#888] tabular-nums ml-auto">
+                    {/* 進度條 + 時間（同一行） */}
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        ref={progressBarRef}
+                        onClick={handleBarClick}
+                        className="flex-1 h-2 bg-[#333] rounded-full cursor-pointer relative overflow-hidden group"
+                      >
+                        <div
+                          className="absolute inset-y-0 left-0 bg-[#818cf8] rounded-full"
+                          style={{ width: `${(isJpActive ? player.progress : 0) * 100}%` }}
+                        />
+                        <div
+                          className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{ left: `calc(${(isJpActive ? player.progress : 0) * 100}% - 7px)` }}
+                        />
+                      </div>
+                      <span className="text-[11px] text-[#888] tabular-nums whitespace-nowrap">
                         {fmt(isJpActive ? player.currentTime : 0)} / {fmt(isJpActive ? player.duration : 0)}
                       </span>
-
-                      {/* 更多選單 */}
-                      <div className="relative">
-                        <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#2c2c2c] text-[#b3b3b3] border border-[#3f3f3f] hover:bg-[#3f3f3f] transition-colors">
-                          <MoreHorizontal size={14} />
-                        </button>
-                        {showMoreMenu && (
-                          <>
-                            <div className="fixed inset-0 z-10" onClick={() => setShowMoreMenu(false)} />
-                            <div className="absolute right-0 bottom-full mb-1 bg-[#2c2c2c] border border-[#3f3f3f] rounded-xl shadow-xl z-20 py-1 min-w-[160px]">
-                              <button onClick={handleDownloadAudio} className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-[#b3b3b3] hover:bg-[#3f3f3f] hover:text-white transition-colors">
-                                <Download size={14} />
-                                <span>{t('btn_tts_download')}</span>
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
                     </div>
 
-                    {/* 進度條 */}
-                    <div
-                      ref={progressBarRef}
-                      onClick={handleBarClick}
-                      className="h-2 bg-[#333] rounded-full cursor-pointer relative overflow-hidden group"
-                    >
-                      <div
-                        className="absolute inset-y-0 left-0 bg-[#818cf8] rounded-full"
-                        style={{ width: `${(isJpActive ? player.progress : 0) * 100}%` }}
-                      />
-                      <div
-                        className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
-                        style={{ left: `calc(${(isJpActive ? player.progress : 0) * 100}% - 7px)` }}
-                      />
-                    </div>
+                    {/* 下載按鈕 */}
+                    <button onClick={handleDownloadAudio} className="flex items-center gap-1.5 text-[12px] text-[#888] hover:text-white transition-colors self-start">
+                      <Download size={13} />
+                      <span>{t('btn_tts_download')}</span>
+                    </button>
                   </div>
                 )}
               </div>
