@@ -26,6 +26,13 @@ function App() {
     navigateTo('detail', id);
   };
 
+  /** 複製筆記用：replaceState 取代 pushState，返回時直接回清單 */
+  const handleReplaceDetail = (id) => {
+    setCurrentTab('detail');
+    setViewingWordId(id);
+    window.history.replaceState({ tab: 'detail', wordId: id }, '');
+  };
+
   const handleBackToList = () => {
     // 用 history.back() 讓瀏覽器回上一頁
     window.history.back();
@@ -89,7 +96,7 @@ function App() {
             onUpdate={updateWord}
             onDelete={deleteWord}
             onAdd={addWord}
-            onViewDuplicate={handleViewDetail}
+            onViewDuplicate={handleReplaceDetail}
             categories={safeCategories}
             addCategory={addCategory}
             updateCategory={updateCategory}

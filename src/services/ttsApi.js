@@ -62,6 +62,46 @@ export async function synthesizeSpeech(text, languageCode, idToken, options = {}
 }
 
 /**
+ * 呼叫後端標準 Cloud TTS API（Wavenet）
+ * 不支援 prompt，使用 Google v1 API
+ */
+export async function synthesizeStandardSpeech(text, languageCode, idToken, options = {}) {
+  if (!TTS_API_URL) {
+    throw new Error('TTS API URL not configured');
+  }
+
+  if (!text || text.length > MAX_TEXT_LENGTH) {
+    throw new Error(`Text must be 1-${MAX_TEXT_LENGTH} characters`);
+  }
+
+  const response = await fetch(`${TTS_API_URL}/tts-standard`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${idToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      text: text.slice(0, MAX_TEXT_LENGTH),
+      languageCode,
+      voiceName: options.voiceName || 'ja-JP-Wavenet-A',
+      speakingRate: options.speakingRate || 1.0,
+      pitch: options.pitch || 0,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(errorData.message || `Standard TTS API error: ${response.status}`);
+    error.code = errorData.error || 'unknown_error';
+    error.status = response.status;
+    throw error;
+  }
+
+  const data = await response.json();
+  return { audioContent: data.audioContent };
+}
+
+/**
  * 播放 base64 編碼的 LINEAR16 音訊
  * @param {string} base64Audio - base64 編碼的音訊
  */
