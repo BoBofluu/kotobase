@@ -3,17 +3,41 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 /**
  * 音訊播放器 Hook
  * 支援：載入中 → 播放 → 暫停 → 繼續 → 重播
+ * 附帶播放進度（currentTime / duration）
  *
  * 狀態：idle → loading → playing → paused → idle
  */
 export function useAudioPlayer() {
   // 'idle' | 'loading' | 'playing' | 'paused'
   const [status, setStatus] = useState('idle');
+  const [progress, setProgress] = useState(0);   // 0~1
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const audioRef = useRef(null);
   const audioUrlRef = useRef(null);
+  const rafRef = useRef(null);
+
+  // 更新進度（用 requestAnimationFrame 避免過度 re-render）
+  const updateProgress = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio && audio.duration) {
+      setCurrentTime(audio.currentTime);
+      setDuration(audio.duration);
+      setProgress(audio.currentTime / audio.duration);
+    }
+    rafRef.current = requestAnimationFrame(updateProgress);
+  }, []);
+
+  const stopProgressLoop = useCallback(() => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }, []);
 
   // 清除舊的 audio 和 URL
   const cleanup = useCallback(() => {
+    stopProgressLoop();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.removeAttribute('src');
@@ -24,7 +48,10 @@ export function useAudioPlayer() {
       URL.revokeObjectURL(audioUrlRef.current);
       audioUrlRef.current = null;
     }
-  }, []);
+    setProgress(0);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [stopProgressLoop]);
 
   // 頁面離開時清除
   useEffect(() => {
@@ -50,12 +77,24 @@ export function useAudioPlayer() {
     const audio = new Audio(url);
     audioRef.current = audio;
 
-    audio.onplay = () => setStatus('playing');
+    audio.onplay = () => {
+      setStatus('playing');
+      rafRef.current = requestAnimationFrame(updateProgress);
+    };
     audio.onpause = () => {
       if (!audio.ended) setStatus('paused');
+      stopProgressLoop();
     };
-    audio.onended = () => setStatus('idle');
-    audio.onerror = () => setStatus('idle');
+    audio.onended = () => {
+      setStatus('idle');
+      stopProgressLoop();
+      setProgress(0);
+      setCurrentTime(0);
+    };
+    audio.onerror = () => {
+      setStatus('idle');
+      stopProgressLoop();
+    };
 
     try {
       await audio.play();
@@ -63,7 +102,7 @@ export function useAudioPlayer() {
       console.error('Audio play failed:', error);
       setStatus('idle');
     }
-  }, [cleanup]);
+  }, [cleanup, updateProgress, stopProgressLoop]);
 
   /**
    * 暫停
@@ -94,6 +133,17 @@ export function useAudioPlayer() {
   }, []);
 
   /**
+   * 跳轉到指定進度 (0~1)
+   */
+  const seek = useCallback((ratio) => {
+    if (audioRef.current && audioRef.current.duration) {
+      audioRef.current.currentTime = ratio * audioRef.current.duration;
+      setProgress(ratio);
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  }, []);
+
+  /**
    * 停止並重置
    */
   const stop = useCallback(() => {
@@ -110,10 +160,14 @@ export function useAudioPlayer() {
 
   return {
     status,
+    progress,
+    currentTime,
+    duration,
     loadAndPlay,
     pause,
     resume,
     restart,
+    seek,
     stop,
     setLoading,
   };

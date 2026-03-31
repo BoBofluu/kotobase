@@ -103,7 +103,8 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
     saveTimerRef.current = setTimeout(() => onUpdate(word.id, { [field]: value }), 300);
   }, [onUpdate, word?.id]);
 
-  useEffect(() => { if (word) setEditedWord({ ...word }); }, [word, wordId]);
+  // 只在切換不同筆記時同步，避免自己編輯觸發的 word 變動導致重新渲染（手機上會造成滾動跳動）
+  useEffect(() => { if (word) setEditedWord({ ...word }); }, [wordId]);
 
   // 離開頁面時停止播放
   useEffect(() => {
@@ -128,6 +129,8 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
     const newWord = { ...word, id: newId, title: (word.title || '') + t('msg_duplicate_title_suffix'), created_at: new Date().toISOString() };
     onAdd(newWord);
     toast('success', t('msg_duplicate_success'));
+    // 用 replaceState 取代當前 history entry，這樣按返回會直接回清單而非舊的詳細頁
+    window.history.replaceState({ tab: 'detail', wordId: newId }, '');
     onViewDuplicate(newId);
   };
 
@@ -233,6 +236,7 @@ const handleDelete = () => {
     if (!user) return null;
 
     const isActive = activePlayerKey === playerKey;
+    const isBusy = player.status !== 'idle' && !isActive;
     return (
       <AudioPlayer
         status={isActive ? player.status : 'idle'}
@@ -241,7 +245,12 @@ const handleDelete = () => {
         onResume={player.resume}
         onRestart={player.restart}
         onStop={() => { player.stop(); setActivePlayerKey(null); }}
+        onSeek={player.seek}
         label={label}
+        progress={isActive ? player.progress : 0}
+        currentTime={isActive ? player.currentTime : 0}
+        duration={isActive ? player.duration : 0}
+        disabled={isBusy}
       />
     );
   };
