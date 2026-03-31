@@ -12,8 +12,8 @@ function App() {
   const [currentTab, setCurrentTab] = useState('input');
   const [viewingWordId, setViewingWordId] = useState(null);
 
-  const { words, addWord, updateWord, deleteWord, getWord } = useWords();
-  const { categories, addCategory, updateCategory, deleteCategory } = useCategories();
+  const { words, ready, addWord, updateWord, deleteWord, getWord, reload } = useWords();
+  const { categories, addCategory, updateCategory, deleteCategory, replaceAll: replaceCats } = useCategories();
 
   // 切換 tab 時推入 history state
   const navigateTo = useCallback((tab, wordId = null) => {
@@ -34,13 +34,11 @@ function App() {
   };
 
   const handleBackToList = () => {
-    // 用 history.back() 讓瀏覽器回上一頁
     window.history.back();
   };
 
   // 監聽瀏覽器的 popstate（上一頁/下一頁）
   useEffect(() => {
-    // 初始化：替換當前 history entry
     window.history.replaceState({ tab: 'input', wordId: null }, '');
 
     const handlePopState = (e) => {
@@ -58,36 +56,50 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  /** SettingsPage 匯入/同步完成後重新載入資料（不需要 reload 整頁） */
+  const handleDataChanged = useCallback(async () => {
+    await reload();
+  }, [reload]);
+
   const safeCategories = categories || {};
+
+  // 等待 IndexedDB 載入完成
+  if (!ready) {
+    return (
+      <div className="min-h-dvh bg-[#1a1a1a] text-white flex items-center justify-center">
+        <div className="text-[#555] text-[14px]">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-[#1a1a1a] text-white pb-16 font-sans">
-      
+
       <ErrorBoundary>
       <main className="p-4 max-w-[1600px] mx-auto w-full">
         {currentTab === 'input' && (
           <InputPage
-            onSave={(word) => { addWord(word); navigateTo('list'); }}
+            onSave={async (word) => { await addWord(word); navigateTo('list'); }}
             categories={safeCategories}
             addCategory={addCategory}
             updateCategory={updateCategory}
             deleteCategory={deleteCategory}
           />
         )}
-        
+
         {currentTab === 'list' && (
-          <ListPage 
-            words={words} 
-            categories={safeCategories} 
+          <ListPage
+            words={words}
+            categories={safeCategories}
             onViewDetail={handleViewDetail}
             onDelete={deleteWord}
           />
         )}
-        
+
         {currentTab === 'settings' && (
-          <SettingsPage />
+          <SettingsPage onDataChanged={handleDataChanged} />
         )}
-        
+
         {currentTab === 'detail' && viewingWordId && (
           <DetailPage
             wordId={viewingWordId}

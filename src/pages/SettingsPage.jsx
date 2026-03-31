@@ -7,7 +7,7 @@ import { uploadToCloud, mergeUploadToCloud, downloadFromCloud, clearCloud, merge
 import { toast, alert, confirmDelete, chooseMode } from '../utils/swal';
 import { STORAGE_KEYS, getLocalWords, setLocalWords, getLocalCategories, setLocalCategories } from '../utils/storage';
 
-function SettingsPage() {
+function SettingsPage({ onDataChanged }) {
   const { t, i18n } = useTranslation();
   const { user, loading, signIn, signOut } = useAuth();
   const [signingIn, setSigningIn] = useState(false);
@@ -34,8 +34,12 @@ function SettingsPage() {
   };
 
   const handleClearData = () => {
-    confirmDelete(t, t('msg_delete_confirm'), t('msg_reset_cat_text')).then((result) => {
-      if (result.isConfirmed) { localStorage.removeItem(STORAGE_KEYS.WORDS); window.location.reload(); }
+    confirmDelete(t, t('msg_delete_confirm'), t('msg_reset_cat_text')).then(async (result) => {
+      if (result.isConfirmed) {
+        await setLocalWords([]);
+        if (onDataChanged) onDataChanged();
+        else window.location.reload();
+      }
     });
   };
 
@@ -64,9 +68,9 @@ function SettingsPage() {
   };
 
   // ===== 匯出 =====
-  const handleExport = () => {
-    const words = getLocalWords();
-    const categories = getLocalCategories();
+  const handleExport = async () => {
+    const words = await getLocalWords();
+    const categories = await getLocalCategories();
     if (words.length === 0) {
       toast('info', t('msg_no_data'));
       return;
@@ -96,8 +100,8 @@ function SettingsPage() {
       const text = await file.text();
       const { words: importedWords, categories: importedCats } = parseImportFile(text);
 
-      const localWords = getLocalWords();
-      const localCats = getLocalCategories();
+      const localWords = await getLocalWords();
+      const localCats = await getLocalCategories();
 
       const result = await chooseMode(t, {
         title: t('msg_import_title'),
@@ -106,20 +110,26 @@ function SettingsPage() {
         denyText: t('btn_import_replace'),
       });
 
-      if (result.isConfirmed) {
-        const merged = mergeWords(localWords, importedWords);
-        const mergedCats = mergeCategories(localCats, importedCats);
-        setLocalWords(merged);
-        setLocalCategories(mergedCats);
-        toast('success', t('msg_import_merge_success', { count: merged.length }), 2000);
-      } else if (result.isDenied) {
-        setLocalWords(importedWords);
-        if (importedCats) setLocalCategories(importedCats);
-        toast('success', t('msg_import_replace_success', { count: importedWords.length }), 2000);
-      }
+      try {
+        if (result.isConfirmed) {
+          const merged = mergeWords(localWords, importedWords);
+          const mergedCats = mergeCategories(localCats, importedCats);
+          await setLocalWords(merged);
+          await setLocalCategories(mergedCats);
+          toast('success', t('msg_import_merge_success', { count: merged.length }), 2000);
+        } else if (result.isDenied) {
+          await setLocalWords(importedWords);
+          if (importedCats) await setLocalCategories(importedCats);
+          toast('success', t('msg_import_replace_success', { count: importedWords.length }), 2000);
+        }
 
-      if (result.isConfirmed || result.isDenied) {
-        setTimeout(() => window.location.reload(), 500);
+        if (result.isConfirmed || result.isDenied) {
+          if (onDataChanged) setTimeout(() => onDataChanged(), 300);
+          else setTimeout(() => window.location.reload(), 500);
+        }
+      } catch (storageError) {
+        console.error('Storage write error:', storageError);
+        alert('error', t('msg_import_error'), storageError.message);
       }
     } catch (error) {
       console.error('Import error:', error);
@@ -144,8 +154,8 @@ function SettingsPage() {
 
   const handleSyncToCloud = async () => {
     if (!user) return;
-    const localWords = getLocalWords();
-    const localCats = getLocalCategories();
+    const localWords = await getLocalWords();
+    const localCats = await getLocalCategories();
 
     const result = await chooseMode(t, {
       title: t('msg_sync_upload_title'),
@@ -187,8 +197,8 @@ function SettingsPage() {
         return;
       }
 
-      const localWords = getLocalWords();
-      const localCats = getLocalCategories();
+      const localWords = await getLocalWords();
+      const localCats = await getLocalCategories();
 
       const result = await chooseMode(t, {
         title: t('msg_sync_download_title'),
@@ -200,17 +210,18 @@ function SettingsPage() {
       if (result.isConfirmed) {
         const merged = mergeWords(localWords, cloudData.words);
         const mergedCats = mergeCategories(localCats, cloudData.categories);
-        setLocalWords(merged);
-        setLocalCategories(mergedCats);
+        await setLocalWords(merged);
+        await setLocalCategories(mergedCats);
         toast('success', t('msg_sync_merge_success', { count: merged.length }), 2000);
       } else if (result.isDenied) {
-        setLocalWords(cloudData.words);
-        if (cloudData.categories) setLocalCategories(cloudData.categories);
+        await setLocalWords(cloudData.words);
+        if (cloudData.categories) await setLocalCategories(cloudData.categories);
         toast('success', t('msg_sync_replace_success'), 2000);
       }
 
       if (result.isConfirmed || result.isDenied) {
-        setTimeout(() => window.location.reload(), 500);
+        if (onDataChanged) setTimeout(() => onDataChanged(), 300);
+        else setTimeout(() => window.location.reload(), 500);
       }
     }, 'Sync download');
   };
@@ -315,7 +326,7 @@ function SettingsPage() {
       </div>
 
       {/* 版本資訊 */}
-      <div className="mt-16 flex flex-col items-center gap-3 text-[#444]"><ExternalLink size={28} className="opacity-30" /><span className="text-[14px] font-medium tracking-widest uppercase opacity-50">Version 2.1</span></div>
+      <div className="mt-16 flex flex-col items-center gap-3 text-[#444]"><ExternalLink size={28} className="opacity-30" /><span className="text-[14px] font-medium tracking-widest uppercase opacity-50">Version 2.2</span></div>
     </div>
   );
 }

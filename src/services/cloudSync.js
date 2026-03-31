@@ -213,6 +213,8 @@ export function exportData(words, categories) {
  */
 const MAX_IMPORT_WORDS = 10000;
 
+const MAX_FIELD_LENGTH = { title: 500, jp_content: 10000, en_content: 10000, note: 5000 };
+
 export function parseImportFile(jsonString) {
   const data = JSON.parse(jsonString);
 
@@ -222,6 +224,13 @@ export function parseImportFile(jsonString) {
     if (words.length > MAX_IMPORT_WORDS) throw new Error(`Too many entries: ${words.length} (max ${MAX_IMPORT_WORDS})`);
     for (const w of words) {
       if (!w.id || !w.created_at) throw new Error('Invalid word entry: missing id or created_at');
+      // 欄位類型與長度驗證
+      for (const [field, maxLen] of Object.entries(MAX_FIELD_LENGTH)) {
+        if (w[field] !== undefined && w[field] !== null) {
+          if (typeof w[field] !== 'string') throw new Error(`Invalid field type: ${field} must be a string`);
+          if (w[field].length > maxLen) throw new Error(`Field "${field}" exceeds max length (${maxLen} chars) in entry ${w.id}`);
+        }
+      }
     }
     return {
       words,

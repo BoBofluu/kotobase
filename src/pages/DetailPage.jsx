@@ -275,23 +275,27 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
     player.startDrag();
     player.dragSeek(getBarRatio(e));
 
+    const cleanupListeners = () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
+    };
     const handleMove = (ev) => {
-      if (!isDraggingRef.current) return;
+      if (!isDraggingRef.current || !progressBarRef.current) return;
       ev.preventDefault();
       const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
       const rect = progressBarRef.current.getBoundingClientRect();
       player.dragSeek(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)));
     };
     const handleEnd = (ev) => {
-      if (!isDraggingRef.current) return;
+      if (!isDraggingRef.current) { cleanupListeners(); return; }
       isDraggingRef.current = false;
+      if (!progressBarRef.current) { cleanupListeners(); return; }
       const clientX = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
       const rect = progressBarRef.current.getBoundingClientRect();
       player.endDrag(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)));
-      document.removeEventListener('mousemove', handleMove);
-      document.removeEventListener('mouseup', handleEnd);
-      document.removeEventListener('touchmove', handleMove);
-      document.removeEventListener('touchend', handleEnd);
+      cleanupListeners();
     };
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('mouseup', handleEnd);

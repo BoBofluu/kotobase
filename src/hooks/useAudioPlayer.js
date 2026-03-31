@@ -16,6 +16,7 @@ export function useAudioPlayer() {
   const audioRef = useRef(null);
   const audioUrlRef = useRef(null);
   const rafRef = useRef(null);
+  const cancelledRef = useRef(false);
 
   // 更新進度（用 requestAnimationFrame 避免過度 re-render）
   const updateProgress = useCallback(() => {
@@ -37,6 +38,7 @@ export function useAudioPlayer() {
 
   // 清除舊的 audio 和 URL
   const cleanup = useCallback(() => {
+    cancelledRef.current = true;
     stopProgressLoop();
     if (audioRef.current) {
       audioRef.current.pause();
@@ -63,6 +65,7 @@ export function useAudioPlayer() {
    */
   const loadAndPlay = useCallback(async (base64Audio) => {
     cleanup();
+    cancelledRef.current = false;
 
     // base64 轉 Blob
     const binaryString = atob(base64Audio);
@@ -72,8 +75,14 @@ export function useAudioPlayer() {
     }
     const blob = new Blob([bytes], { type: 'audio/wav' });
     const url = URL.createObjectURL(blob);
-    audioUrlRef.current = url;
 
+    // 若在轉換過程中被取消，清除新建的 URL
+    if (cancelledRef.current) {
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    audioUrlRef.current = url;
     const audio = new Audio(url);
     audioRef.current = audio;
 
@@ -97,6 +106,8 @@ export function useAudioPlayer() {
     };
 
     try {
+      // 若已被取消（例如離開頁面），不播放
+      if (cancelledRef.current) return;
       await audio.play();
     } catch (error) {
       console.error('Audio play failed:', error);

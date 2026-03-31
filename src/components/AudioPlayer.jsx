@@ -22,7 +22,8 @@ function AudioPlayer({ status, onPlay, onPause, onResume, onRestart, onStop, onS
   const handleBarClick = (e) => {
     if (!barRef.current || !onSeek) return;
     const rect = barRef.current.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const clientX = e.changedTouches?.[0]?.clientX ?? e.touches?.[0]?.clientX ?? e.clientX;
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     onSeek(ratio);
   };
 
@@ -33,6 +34,7 @@ function AudioPlayer({ status, onPlay, onPause, onResume, onRestart, onStop, onS
       <div
         ref={barRef}
         onClick={handleBarClick}
+        onTouchEnd={handleBarClick}
         className="flex-1 h-1.5 bg-[#333] rounded-full cursor-pointer relative overflow-hidden group"
       >
         <div

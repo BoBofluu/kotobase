@@ -6,7 +6,7 @@ import useScrollDirection from '../hooks/useScrollDirection';
 
 function BottomNavbar({ currentTab, setTab }) {
   const { t } = useTranslation();
-  const scrollDir = useScrollDirection(15);
+  const scrollDir = useScrollDirection(15, currentTab);
   const hidden = scrollDir === 'down';
 
   const tabs = [
