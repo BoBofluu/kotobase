@@ -293,7 +293,7 @@ const handleDelete = () => {
   return (
     <div className="flex flex-col gap-6 pb-24 w-full animate-in fade-in duration-300 px-4 max-w-[1600px] mx-auto">
 
-      <div className="sticky top-14 bg-[#1a1a1a]/90 backdrop-blur-md z-40 py-3 border-b border-[#3f3f3f] flex items-center justify-between">
+      <div className="sticky top-0 bg-[#1a1a1a]/90 backdrop-blur-md z-40 py-3 border-b border-[#3f3f3f] flex items-center justify-between">
         <button onClick={onBack} className="flex items-center gap-2 text-[#818cf8] hover:text-white transition-colors font-bold focus:outline-none">
           <ArrowLeft size={20} />
           <span>{t('btn_back')}</span>
@@ -424,7 +424,7 @@ const handleDelete = () => {
                       ref={jpTextareaRef}
                       value={editedWord.jp_content}
                       onChange={(e) => handleChange('jp_content', e.target.value)}
-                      minHeight={jpTextareaHeightRef.current || "150px"}
+                      minHeight={jpTextareaHeightRef.current || "225px"}
                       className="mt-0"
                     />
                 )}
@@ -433,7 +433,7 @@ const handleDelete = () => {
 
         <div>
             <AppField label={t('label_note')} />
-            <AppTextArea value={editedWord.note} onChange={(e) => handleChange('note', e.target.value)} minHeight="80px" className="mt-3 italic text-[#888]" />
+            <AppTextArea value={editedWord.note} onChange={(e) => handleChange('note', e.target.value)} minHeight="120px" className="mt-3 italic text-[#888]" />
         </div>
 
         <button onClick={handleDelete} className="mt-4 flex items-center justify-center gap-2 w-full py-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl font-bold hover:bg-red-500 hover:text-white transition-all active:scale-[0.98] focus:outline-none shadow-sm">{t('btn_delete_item')}</button>

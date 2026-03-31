@@ -2,9 +2,12 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { PenTool, List, Settings } from 'lucide-react';
 import { clsx } from 'clsx';
+import useScrollDirection from '../hooks/useScrollDirection';
 
 function BottomNavbar({ currentTab, setTab }) {
   const { t } = useTranslation();
+  const scrollDir = useScrollDirection(15);
+  const hidden = scrollDir === 'down';
 
   const tabs = [
     { id: 'input', label: t('tab_input'), icon: PenTool },
@@ -13,7 +16,10 @@ function BottomNavbar({ currentTab, setTab }) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-[#1e1e1e]/95 backdrop-blur-md border-t border-[#2a2a2a] flex items-stretch justify-around z-50 pb-safe">
+    <nav className={clsx(
+      "fixed bottom-0 left-0 right-0 h-16 bg-[#1e1e1e]/95 backdrop-blur-md border-t border-[#2a2a2a] flex items-stretch justify-around z-50 pb-safe transition-transform duration-300",
+      hidden && "translate-y-full"
+    )}>
       {tabs.map(({ id, label, icon: Icon }) => (
         <button
           key={id}

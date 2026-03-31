@@ -96,13 +96,13 @@ function InputPage({ onSave, categories, addCategory, updateCategory, deleteCate
               {jpContent ? <FuriganaText text={jpContent} /> : <span className="text-[#444] italic text-sm">{t('msg_no_content')}</span>}
             </div>
           ) : (
-            <AppTextArea value={jpContent} onChange={(e) => setJpContent(e.target.value)} placeholder={t('placeholder_content')} minHeight="150px" className="mt-0" />
+            <AppTextArea value={jpContent} onChange={(e) => setJpContent(e.target.value)} placeholder={t('placeholder_content')} minHeight="225px" className="mt-0" />
           )}
         </div>
       </div>
       <div className="flex flex-col gap-3">
         <AppField label={t('label_note')} />
-        <AppTextArea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('placeholder_note')} minHeight="80px" className="mt-3 italic text-[#888]" />
+        <AppTextArea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('placeholder_note')} minHeight="120px" className="mt-3 italic text-[#888]" />
       </div>
       <button onClick={handleSave} className="mt-4 py-4 bg-[#818cf8]/10 border border-[#818cf8]/30 text-[#818cf8] rounded-full font-bold hover:bg-[#818cf8] hover:text-white transition-all active:scale-[0.98] shadow-sm">{t('btn_save')}</button>
       {isCatManagerOpen && <CategoryManager categories={categories} addCategory={addCategory} updateCategory={updateCategory} deleteCategory={deleteCategory} onClose={() => setIsCatManagerOpen(false)} />}

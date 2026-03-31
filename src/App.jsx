@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
-import Header from './components/Header';
 import BottomNavbar from './components/BottomNavbar';
 import InputPage from './pages/InputPage';
 import ListPage from './pages/ListPage';
@@ -55,8 +54,7 @@ function App() {
   const safeCategories = categories || {};
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-white pt-14 pb-16 font-sans">
-      <Header />
+    <div className="min-h-dvh bg-[#1a1a1a] text-white pb-16 font-sans">
       
       <ErrorBoundary>
       <main className="p-4 max-w-[1600px] mx-auto w-full">

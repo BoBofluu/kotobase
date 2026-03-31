@@ -45,7 +45,7 @@ export const AppInput = ({ className = "", ...props }) => (
   />
 );
 
-export const AppTextArea = React.forwardRef(({ minHeight = "100px", className = "", ...props }, ref) => (
+export const AppTextArea = React.forwardRef(({ minHeight = "150px", className = "", ...props }, ref) => (
   <textarea
     ref={ref}
     {...props}

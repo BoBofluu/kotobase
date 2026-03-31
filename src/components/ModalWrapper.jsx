@@ -26,7 +26,7 @@ function ModalWrapper({ title, onClose, zIndex = 200, children, footer }) {
       onClick={onClose}
     >
       <div
-        className="bg-[#1a1a1a] border border-[#333] rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in duration-200 text-white"
+        className="bg-[#1a1a1a] border border-[#333] rounded-2xl w-full max-w-md max-h-[85dvh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in duration-200 text-white"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
