@@ -144,6 +144,45 @@ export function useAudioPlayer() {
   }, []);
 
   /**
+   * 開始拖曳（靜音 + 暫停進度更新）
+   */
+  const startDrag = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = true;
+    }
+    stopProgressLoop();
+  }, [stopProgressLoop]);
+
+  /**
+   * 拖曳中更新進度（不播放聲音）
+   */
+  const dragSeek = useCallback((ratio) => {
+    const r = Math.max(0, Math.min(1, ratio));
+    setProgress(r);
+    if (audioRef.current && audioRef.current.duration) {
+      audioRef.current.currentTime = r * audioRef.current.duration;
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  }, []);
+
+  /**
+   * 結束拖曳（解除靜音 + 恢復進度更新）
+   */
+  const endDrag = useCallback((ratio) => {
+    const r = Math.max(0, Math.min(1, ratio));
+    if (audioRef.current && audioRef.current.duration) {
+      audioRef.current.currentTime = r * audioRef.current.duration;
+      audioRef.current.muted = false;
+      setProgress(r);
+      setCurrentTime(audioRef.current.currentTime);
+      // 如果原本在播放中，恢復進度更新迴圈
+      if (status === 'playing') {
+        rafRef.current = requestAnimationFrame(updateProgress);
+      }
+    }
+  }, [status, updateProgress]);
+
+  /**
    * 停止並重置
    */
   const stop = useCallback(() => {
@@ -168,6 +207,9 @@ export function useAudioPlayer() {
     resume,
     restart,
     seek,
+    startDrag,
+    dragSeek,
+    endDrag,
     stop,
     setLoading,
   };

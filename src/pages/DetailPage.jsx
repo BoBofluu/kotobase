@@ -244,18 +244,59 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${editedWord.title || word.id}.wav`;
+    const title = editedWord.title || word.id;
+    const audioLabel = wordAudioData.label || '';
+    a.download = audioLabel ? `${title}_${audioLabel}.wav` : `${title}.wav`;
     a.click();
     URL.revokeObjectURL(url);
-    setShowMoreMenu(false);
+  };
+
+  // 進度條：計算 ratio
+  const getBarRatio = (e) => {
+    if (!progressBarRef.current) return 0;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
   };
 
   // 進度條點擊跳轉
   const handleBarClick = (e) => {
-    if (!progressBarRef.current || !player.duration) return;
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    player.seek(ratio);
+    if (!player.duration || isDraggingRef.current) return;
+    player.seek(getBarRatio(e));
+  };
+
+  // 進度條拖曳
+  const isDraggingRef = useRef(false);
+
+  const handleDragStart = (e) => {
+    if (!player.duration) return;
+    e.preventDefault();
+    isDraggingRef.current = true;
+    player.startDrag();
+    player.dragSeek(getBarRatio(e));
+
+    const handleMove = (ev) => {
+      if (!isDraggingRef.current) return;
+      ev.preventDefault();
+      const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      const rect = progressBarRef.current.getBoundingClientRect();
+      player.dragSeek(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)));
+    };
+    const handleEnd = (ev) => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      const clientX = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
+      const rect = progressBarRef.current.getBoundingClientRect();
+      player.endDrag(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)));
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
+    };
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
   };
 
   const handleVoiceChange = (voice) => {
@@ -569,14 +610,16 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
                       <div
                         ref={progressBarRef}
                         onClick={handleBarClick}
-                        className="flex-1 h-2 bg-[#333] rounded-full cursor-pointer relative overflow-hidden group"
+                        onMouseDown={handleDragStart}
+                        onTouchStart={handleDragStart}
+                        className="flex-1 h-2 bg-[#333] rounded-full cursor-pointer relative overflow-visible group"
                       >
                         <div
                           className="absolute inset-y-0 left-0 bg-[#818cf8] rounded-full"
                           style={{ width: `${(isJpActive ? player.progress : 0) * 100}%` }}
                         />
                         <div
-                          className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                           style={{ left: `calc(${(isJpActive ? player.progress : 0) * 100}% - 7px)` }}
                         />
                       </div>
