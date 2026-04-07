@@ -8,7 +8,7 @@ const TTS_API_URL = import.meta.env.VITE_TTS_API_URL || '';
  * @param {object} options - 額外選項
  * @returns {Promise<string>} base64 編碼的音訊資料
  */
-const MAX_TEXT_LENGTH = 5000;
+const MAX_TEXT_LENGTH = 20000;
 const MAX_PROMPT_LENGTH = 500;
 
 export async function synthesizeSpeech(text, languageCode, idToken, options = {}) {

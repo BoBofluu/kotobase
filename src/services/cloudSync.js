@@ -213,7 +213,7 @@ export function exportData(words, categories) {
  */
 const MAX_IMPORT_WORDS = 10000;
 
-const MAX_FIELD_LENGTH = { title: 500, jp_content: 10000, en_content: 10000, note: 5000 };
+const MAX_FIELD_LENGTH = { title: 500, jp_content: 20000, en_content: 20000, note: 5000 };
 
 export function parseImportFile(jsonString) {
   const data = JSON.parse(jsonString);
