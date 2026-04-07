@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, CheckSquare, Square, Filter, ChevronDown, ChevronUp, ArrowUp } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -33,6 +33,22 @@ function ListPage({ words, categories, onViewDetail }) {
   }, []);
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // 按月份分組
+  const groupedByMonth = useMemo(() => {
+    const groups = [];
+    let currentMonth = null;
+    for (const word of filteredWords) {
+      const d = new Date(word.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (key !== currentMonth) {
+        currentMonth = key;
+        groups.push({ key, year: d.getFullYear(), month: d.getMonth() + 1, words: [] });
+      }
+      groups[groups.length - 1].words.push(word);
+    }
+    return groups;
+  }, [filteredWords]);
 
   return (
     <div className="flex flex-col gap-4 pb-10">
@@ -107,11 +123,26 @@ function ListPage({ words, categories, onViewDetail }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-2">
-        {filteredWords.length > 0 ? (
-          filteredWords.map(word => <WordCard key={word.id} word={word} categories={categories} onClick={onViewDetail} />)
+      <div className="flex flex-col gap-6 mt-2">
+        {groupedByMonth.length > 0 ? (
+          groupedByMonth.map((group) => (
+            <div key={group.key}>
+              {/* 月份分隔線 */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-1 h-px bg-[#3f3f3f]" />
+                <span className="text-[14px] font-bold text-[#818cf8] tracking-wider whitespace-nowrap">
+                  {group.year} / {String(group.month).padStart(2, '0')}
+                </span>
+                <div className="flex-1 h-px bg-[#3f3f3f]" />
+              </div>
+              {/* 該月份的卡片網格 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {group.words.map(word => <WordCard key={word.id} word={word} categories={categories} onClick={onViewDetail} />)}
+              </div>
+            </div>
+          ))
         ) : (
-          <div className="col-span-full py-24 text-center">
+          <div className="py-24 text-center">
             <p className="text-[14px] text-[#b3b3b3] font-medium italic">{t('msg_no_results')}</p>
           </div>
         )}

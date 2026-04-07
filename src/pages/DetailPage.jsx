@@ -143,10 +143,10 @@ function DetailPage({ wordId, getWord, onBack, onUpdate, onDelete, onAdd, onView
     }
   };
 
-  const handleDuplicate = () => {
+  const handleDuplicate = async () => {
     const newId = Date.now().toString();
     const newWord = { ...word, id: newId, title: (word.title || '') + t('msg_duplicate_title_suffix'), created_at: new Date().toISOString() };
-    onAdd(newWord);
+    await onAdd(newWord);
     toast('success', t('msg_duplicate_success'));
     onViewDuplicate(newId);
   };
