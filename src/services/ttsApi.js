@@ -151,6 +151,17 @@ export async function getVoices() {
  * @param {string} text - 要標注假名的日文文字
  * @returns {Promise<Array<{surface: string, reading: string|null}>>}
  */
+/**
+ * Yahoo ふりがな API が受け付けない特殊文字を除去する
+ * em dash, en dash, 水平線などの記号を削除し、制御文字も除去
+ */
+function sanitizeForFurigana(text) {
+  return text
+    .replace(/[—–―─\u2015\u2500\u2012\u2013\u2014]/g, '')  // 各種 dash
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')  // 制御文字
+    .trim();
+}
+
 export async function fetchFurigana(text) {
   if (!TTS_API_URL) {
     throw new Error('API URL not configured');
@@ -160,12 +171,17 @@ export async function fetchFurigana(text) {
     throw new Error(`Text must be 1-${MAX_TEXT_LENGTH} characters`);
   }
 
+  const sanitized = sanitizeForFurigana(text.slice(0, MAX_TEXT_LENGTH));
+  if (!sanitized) {
+    return [];
+  }
+
   const response = await fetch(`${TTS_API_URL}/furigana`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ text: text.slice(0, MAX_TEXT_LENGTH) }),
+    body: JSON.stringify({ text: sanitized }),
   });
 
   if (!response.ok) {
